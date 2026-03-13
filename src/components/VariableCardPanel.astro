@@ -443,7 +443,7 @@
       resultDiv.style.display = 'block';
       setStatus('✅ 变量卡生成完毕！6 个组件已自动写入角色卡，展开详情可查看/复制。', '#34d399');
 
-      if (window.gsap && window.__fxEnabled__ && window.__fxEnabled__()) {
+      if (window.gsap) {
         window.gsap.fromTo(resultDiv, { y:15, opacity:0 }, { y:0, opacity:1, duration:0.4, ease:'power2.out' });
       }
 

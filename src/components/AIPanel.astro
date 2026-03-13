@@ -665,25 +665,22 @@
   function updateSearchUI(isUserAction) {
     var enabled = searchEnable.checked;
     var shouldAnimate = _searchInitDone && isUserAction === true;
-    var fxOn = window.__fxEnabled__ ? window.__fxEnabled__() : true;
     searchConfigBlock.classList.toggle('active', enabled);
     updateSearchBadge();
 
     if (enabled) {
-      if (shouldAnimate && fxOn && !_searchAnimating) {
+      if (shouldAnimate && !_searchAnimating) {
         _searchAnimating = true;
         playSearchScanAnimation(function () {
           expandSearchDetail(true);
           _searchAnimating = false;
         });
-      } else if (shouldAnimate && !fxOn) {
-        expandSearchDetail(true);
       } else {
         searchConfigDetail.style.display = 'block';
       }
     } else {
       if (shouldAnimate) {
-        collapseSearchDetail(fxOn);
+        collapseSearchDetail(true);
       } else {
         searchConfigDetail.style.display = 'none';
       }

@@ -11,59 +11,9 @@
   function qAll(sel) { return Array.prototype.slice.call(document.querySelectorAll(sel)); }
   function q(sel) { return document.querySelector(sel); }
 
-  var FX_KEY = 'st_v3_fx_enabled';
-  var fxEnabled = true;
   var loopTweens = [];   // 所有可暂停的持续动画
   var orbEls = [];       // 环境光球 DOM
   var glowEls = [];      // 追光 DOM
-
-  // 读取保存的偏好
-  try {
-    var saved = localStorage.getItem(FX_KEY);
-    if (saved !== null) fxEnabled = saved === '1';
-  } catch(e) {}
-
-  // ============================================================
-  //  开关 UI 绑定
-  // ============================================================
-  var toggle = q('#fxToggle');
-  if (toggle) {
-    toggle.checked = fxEnabled;
-    toggle.addEventListener('change', function () {
-      fxEnabled = toggle.checked;
-      try { localStorage.setItem(FX_KEY, fxEnabled ? '1' : '0'); } catch(e) {}
-      applyFxState();
-    });
-  }
-
-  function applyFxState() {
-    // 粒子 Canvas
-    var canvas = q('#particleCanvas');
-    if (canvas) canvas.style.display = fxEnabled ? '' : 'none';
-
-    // 持续循环动画
-    loopTweens.forEach(function (tw) {
-      if (fxEnabled) tw.resume();
-      else tw.pause();
-    });
-
-    // 环境光球
-    orbEls.forEach(function (orb) {
-      orb.style.display = fxEnabled ? '' : 'none';
-    });
-
-    // 追光层
-    glowEls.forEach(function (el) {
-      el.style.display = fxEnabled ? '' : 'none';
-    });
-
-    // Header 流光边框
-    var header = q('.app-header');
-    if (header) {
-      if (fxEnabled) header.classList.add('header-glow-border');
-      else header.classList.remove('header-glow-border');
-    }
-  }
 
   // ============================================================
   //  1. 入场动画 — 变形金刚折叠展开
@@ -179,6 +129,9 @@
         opacity: 1,
       });
 
+      // 保存 children 引用以便清理时使用
+      var _panelChildren = children;
+
       var tl = gsap.timeline({ delay: delay });
 
       // ── Phase 1：面板可见 + 外框从点变成一条横线 (0 → 0.8s) ──
@@ -274,6 +227,12 @@
         panel.style.overflowX = '';
         if (needSetPosition) panel.style.position = '';
         panel.style.filter = '';
+        // ★ 清除 GSAP 残留的 transform/opacity/scale 等内联样式
+        // 避免创建层叠上下文导致内部下拉框被裁切
+        gsap.set(panel, { clearProps: 'transform,opacity,scale,clipPath,filter,willChange' });
+        _panelChildren.forEach(function (ch) {
+          gsap.set(ch, { clearProps: 'transform,opacity,scale,y,filter,willChange' });
+        });
       }, null, null, frameOutTime + 0.8);
     });
   }
@@ -296,7 +255,6 @@
     glowEls.push(glowEl);
 
     panel.addEventListener('mouseenter', function () {
-      if (!fxEnabled) return;
       gsap.to(glowEl, { opacity: 1, duration: 0.4 });
     });
     panel.addEventListener('mouseleave', function () {
@@ -304,7 +262,7 @@
     });
     var _glowRAF = 0;
     panel.addEventListener('mousemove', function (e) {
-      if (!fxEnabled || _glowRAF) return;
+      if (_glowRAF) return;
       _glowRAF = requestAnimationFrame(function () {
         var rect = panel.getBoundingClientRect();
         glowEl.style.setProperty('--glow-x', (e.clientX - rect.left) + 'px');
@@ -388,7 +346,7 @@
   //  7. Entry item 弹入 hook
   // ============================================================
   window.__animateNewEntry__ = function (el) {
-    if (!el || !window.gsap || !fxEnabled) return;
+    if (!el || !window.gsap) return;
     gsap.fromTo(el,
       { y: 20, opacity: 0, scale: 0.95 },
       { y: 0, opacity: 1, scale: 1, duration: 0.45, ease: 'back.out(1.4)' }
@@ -461,7 +419,7 @@
 
   window.__flyToEditArea__ = function (entryEl, data) {
     if (!gsap || !entryEl) return false;
-    if (window.__fxEnabled__ && !window.__fxEnabled__()) return false;
+    // 始终允许飞行动画
 
     var editArea = document.getElementById('wbManualEditArea');
     if (!editArea) return;
@@ -637,13 +595,8 @@
   // ============================================================
   //  初始化状态
   // ============================================================
-  if (!fxEnabled) {
-    // 等入场动画结束后再应用关闭
-    master.eventCallback('onComplete', function () { applyFxState(); });
-  }
-
-  // 暴露给外部
-  window.__fxEnabled__ = function () { return fxEnabled; };
+  // 特效始终开启
+  window.__fxEnabled__ = function () { return true; };
 
 })();
 </script>

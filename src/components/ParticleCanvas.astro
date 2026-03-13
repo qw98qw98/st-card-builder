@@ -182,17 +182,6 @@
     else canvas.style.opacity = '1';
   }
 
-  // 监听开关变化
-  var toggle = document.getElementById('fxToggle');
-  if (toggle) {
-    toggle.addEventListener('change', function () {
-      if (toggle.checked) {
-        start();
-        canvas.style.opacity = '1';
-      } else {
-        stop();
-      }
-    });
-  }
+  // 粒子动画始终开启
 })();
 </script>
