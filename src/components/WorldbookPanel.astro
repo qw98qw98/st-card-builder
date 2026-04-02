@@ -2,16 +2,16 @@
 ---
 <div class="panel area-worldbook wb-panel">
   <div class="wb-head">
-    <div>
+    <div class="wb-head-top">
       <h2>📖 世界书</h2>
-      <p class="wb-head-desc">编辑模式用于快速修改，预览模式用于上方看详情、下方看全量词条索引。生成、手动编辑、导入条目分开看，长设定可直接阅读和复制。</p>
+      <div class="wb-head-meta">
+        <span id="wbTotalCount" class="wb-pill">0 条</span>
+        <span id="wbGenCount" class="wb-pill wb-pill-generated">生成 0</span>
+        <span id="wbManualCount" class="wb-pill wb-pill-manual">手动 0</span>
+        <span id="wbImportCount" class="wb-pill wb-pill-import">导入 0</span>
+      </div>
     </div>
-    <div class="wb-head-meta">
-      <span id="wbTotalCount" class="wb-pill">0 条</span>
-      <span id="wbGenCount" class="wb-pill wb-pill-generated">生成 0</span>
-      <span id="wbManualCount" class="wb-pill wb-pill-manual">手动 0</span>
-      <span id="wbImportCount" class="wb-pill wb-pill-import">导入 0</span>
-    </div>
+    <p class="wb-head-desc">编辑模式用于快速修改，预览模式用于上方看详情、下方看全量词条索引。生成、手动编辑、导入条目分开看，长设定可直接阅读和复制。</p>
   </div>
 
   <div class="wb-mode-switch">
@@ -19,7 +19,6 @@
       <button class="wb-mode-tab is-active" type="button" role="tab" aria-selected="true" data-wb-mode="edit">编辑模式</button>
       <button class="wb-mode-tab" type="button" role="tab" aria-selected="false" data-wb-mode="preview">预览模式</button>
     </div>
-    <p class="wb-mode-tip">编辑模式只保留常用编辑项，预览模式改成左侧浏览、右侧完整阅读，支持键盘上下切换与复制。</p>
   </div>
 
   <div class="wb-shell">
@@ -213,6 +212,13 @@
   }
 
   .wb-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px 14px;
+    align-items: start;
+  }
+
+  .wb-head-top {
     display: flex;
     justify-content: space-between;
     gap: 14px;
@@ -221,11 +227,12 @@
   }
 
   .wb-head-desc {
-    margin: 6px 0 0;
-    font-size: 0.76rem;
+    grid-column: 1 / -1;
+    margin: 0;
+    font-size: 0.94rem;
     color: var(--muted);
-    max-width: 64ch;
-    line-height: 1.5;
+    max-width: none;
+    line-height: 1.7;
   }
 
   .wb-head-meta {
@@ -264,13 +271,6 @@
     background: var(--accent);
     color: #fff;
     border-color: transparent;
-  }
-
-  .wb-mode-tip {
-    margin: 0;
-    font-size: 0.72rem;
-    color: var(--muted);
-    line-height: 1.45;
   }
 
   .wb-mode-actions {
@@ -347,6 +347,13 @@
     border: 1px solid var(--border);
     border-radius: 18px;
     padding: 16px;
+  }
+
+  .wb-list-card {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
   }
 
   .wb-card-head {
@@ -624,10 +631,10 @@
     gap: 14px;
     min-width: 0;
     min-height: 0;
-    border-radius: 18px;
-    border: 1px solid var(--border);
-    background: var(--surface-strong);
-    padding: 16px;
+    border-radius: 0;
+    border: 0;
+    background: transparent;
+    padding: 0;
   }
 
   .wb-preview-copy-group {
@@ -854,6 +861,16 @@
   }
 
   @media (max-width: 1100px) {
+    .wb-head {
+      grid-template-columns: 1fr;
+    }
+
+    .wb-head-top {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+
     .wb-shell {
       grid-template-columns: 1fr;
     }

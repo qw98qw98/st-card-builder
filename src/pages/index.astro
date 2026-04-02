@@ -6,7 +6,7 @@ import WorldbookPanel from '../components/WorldbookPanel.astro';
 import StatusBarPanel from '../components/StatusBarPanel.astro';
 ---
 
-<Layout title="SillyTavern V3 卡片构建器">
+<Layout title="然然工坊">
   <div class="app-header">
     <div class="app-brand">
       <span class="app-logo">
@@ -29,15 +29,10 @@ import StatusBarPanel from '../components/StatusBarPanel.astro';
         </svg>
       </span>
       <div>
-        <h1 class="app-title">V3 卡片构建器</h1>
-        <p class="app-subtitle">未完成版本</p>
+        <h1 class="app-title">然然工坊</h1>
       </div>
     </div>
     <div class="app-header-actions">
-      <span class="app-version-badge">V3 SPEC</span>
-      <span id="visitorCount" class="app-version-badge" style="margin-left:6px;background:rgba(139,92,246,0.13);border-color:rgba(139,92,246,0.3);color:#c4b5fd;min-width:60px;text-align:center;">
-        👥 <span id="visitorNum" style="font-variant-numeric:tabular-nums;">…</span>
-      </span>
       <button id="themeToggle" class="theme-toggle" type="button" aria-pressed="false">🌙 深色</button>
     </div>
   </div>
@@ -65,7 +60,6 @@ import StatusBarPanel from '../components/StatusBarPanel.astro';
       <div class="workspace-section-header">
         <div>
           <h2 class="workspace-section-title">世界书</h2>
-          <p class="workspace-section-desc">左侧浏览、右侧完整阅读，支持复制与键盘快速切换</p>
         </div>
       </div>
       <div class="workspace-stack">
@@ -2457,43 +2451,6 @@ window.__setImportedAvatar__ = function(base64, skipCommit) {
         initialWorldbookMode = storedWorldbookMode;
       }
     } catch (err) {}
-
-    // ★ Supabase 访客计数器
-    (function initVisitorCounter() {
-      var SUPABASE_URL = 'https://ccvskpgcbehhtdsnvtbd.supabase.co';
-      var SUPABASE_ANON_KEY = 'sb_publishable_pMtDNSU-27NxIDbIUYVxrQ_o-kIX6eU';
-
-      var numEl = document.getElementById('visitorNum');
-      var SESSION_KEY = 'st_v3_visited';
-      var alreadyCounted = sessionStorage.getItem(SESSION_KEY);
-
-      // 用 Supabase RPC 调用 increment_visitors 函数
-      // 如果本次会话已计数，则只读取不递增
-      var rpcName = alreadyCounted ? 'get_visitor_count' : 'increment_visitors';
-
-      fetch(SUPABASE_URL + '/rest/v1/rpc/' + rpcName, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': SUPABASE_ANON_KEY,
-          'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
-        },
-        body: '{}'
-      })
-      .then(function(res) { return res.json(); })
-      .then(function(data) {
-        // RPC 返回的是一个数字
-        if (typeof data === 'number') {
-          numEl.textContent = data.toLocaleString();
-          sessionStorage.setItem(SESSION_KEY, '1');
-        } else {
-          numEl.textContent = '--';
-        }
-      })
-      .catch(function() {
-        numEl.textContent = '--';
-      });
-    })();
 
     var drafts = getAllDrafts();
     var lastId = localStorage.getItem(CURRENT_KEY);
