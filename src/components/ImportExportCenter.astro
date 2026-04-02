@@ -4,7 +4,7 @@
   <div class="iec-head">
     <div>
       <h2>📦 导入 / 导出中心</h2>
-      <p class="iec-desc">统一处理世界书 JSON、快速回复 QR、香草 AI 角色卡、SillyTavern 角色卡和 PNG 头像 / 卡片。</p>
+      <p class="iec-desc">统一处理世界书 JSON、快速回复 QR、香草角色卡、SillyTavern 角色卡和 PNG 头像 / 卡片。</p>
     </div>
     <span id="importAssetStatus" class="iec-status">等待导入</span>
   </div>
@@ -27,7 +27,7 @@
 
       <div class="form-group" style="margin-bottom:0;">
         <label>JSON / 卡片内容</label>
-        <textarea id="importAssetText" class="iec-textarea" placeholder="粘贴世界书 JSON、快速回复 QR JSON、香草 AI 角色卡 JSON、SillyTavern 角色卡 JSON，或拖入 .json /.png 文件"></textarea>
+        <textarea id="importAssetText" class="iec-textarea" placeholder="粘贴世界书 JSON、快速回复 QR JSON、香草角色卡 JSON、SillyTavern 角色卡 JSON，或拖入 .json /.png 文件"></textarea>
       </div>
 
       <p class="iec-card-tip">PNG 文件会优先尝试读取卡片数据；没有 `chara` 的 PNG 会按纯头像处理。</p>
@@ -46,7 +46,7 @@
         <div class="export-menu-shell">
           <button id="btnExportMenu" class="btn btn-fetch ie-export-menu-btn" type="button">💾 导出格式</button>
           <div id="exportFormatMenu" class="export-format-menu" hidden>
-            <button type="button" class="export-format-item" data-export-format="vanilla">香草 AI 角色卡</button>
+            <button type="button" class="export-format-item" data-export-format="vanilla">香草角色卡</button>
             <button type="button" class="export-format-item" data-export-format="st">SillyTavern 角色卡</button>
             <button type="button" class="export-format-item" data-export-format="worldbook-md">世界书 md</button>
           </div>
@@ -118,6 +118,14 @@
     background: rgba(2, 6, 23, 0.45);
   }
 
+  .iec-card.iec-drop-active {
+    border-color: rgba(56, 189, 248, 0.7);
+    background:
+      radial-gradient(circle at top right, rgba(56, 189, 248, 0.18), transparent 30%),
+      rgba(8, 15, 31, 0.7);
+    box-shadow: inset 0 0 0 1px rgba(56, 189, 248, 0.2), 0 0 0 1px rgba(56, 189, 248, 0.08);
+  }
+
   .iec-card-head {
     display: flex;
     align-items: flex-start;
@@ -176,6 +184,10 @@
     font-size: 0.72rem;
     color: #64748b;
     line-height: 1.5;
+  }
+
+  .iec-card.iec-drop-active .iec-card-tip {
+    color: #bae6fd;
   }
 
   .iec-export-row {

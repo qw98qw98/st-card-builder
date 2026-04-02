@@ -90,7 +90,7 @@
         <input type="number" id="sbOrder" value="999" min="0" max="9999" />
       </div>
     </div>
-    <p style="font-size: 0.68rem; color: #64748b; margin: 8px 0 0 0;">depth=1 表示插入在最后一条对话之前，AI 必然看到。</p>
+    <p style="font-size: 0.68rem; color: #64748b; margin: 8px 0 0 0;">depth=1 表示插入在最后一条对话之前，能直接进入输出末尾。</p>
   </div>
 
   <button id="btnInjectStatusBar" class="btn" style="width: 100%; margin-top: 16px; background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff;">✨ 注入到卡片</button>
@@ -150,7 +150,7 @@
           `<input type="text" placeholder="字段名称" value="${escHtml(f.name)}" data-i="${i}" data-key="name"` +
           ` style="flex:0 0 120px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.12);` +
           `border-radius:6px;padding:5px 8px;color:#e2e8f0;font-size:0.82rem;" />` +
-          `<input type="text" placeholder="字段定义（告诉AI这个字段代表什么、取值范围等）" value="${escHtml(f.desc)}" data-i="${i}" data-key="desc"` +
+          `<input type="text" placeholder="字段定义（说明这个字段代表什么、取值范围等）" value="${escHtml(f.desc)}" data-i="${i}" data-key="desc"` +
           ` style="flex:1;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.12);` +
           `border-radius:6px;padding:5px 8px;color:#94a3b8;font-size:0.78rem;" />` +
           `<button data-del="${i}" style="flex-shrink:0;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);` +

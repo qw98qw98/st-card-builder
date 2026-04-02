@@ -4,11 +4,11 @@
   <div class="wb-head">
     <div>
       <h2>📖 世界书</h2>
-      <p class="wb-head-desc">编辑模式用于快速修改，预览模式用于上方看详情、下方看全量词条索引。AI 生成、手动编辑、导入条目分开看，长设定可直接阅读和复制。</p>
+      <p class="wb-head-desc">编辑模式用于快速修改，预览模式用于上方看详情、下方看全量词条索引。生成、手动编辑、导入条目分开看，长设定可直接阅读和复制。</p>
     </div>
     <div class="wb-head-meta">
       <span id="wbTotalCount" class="wb-pill">0 条</span>
-      <span id="wbAiCount" class="wb-pill wb-pill-ai">AI 0</span>
+      <span id="wbGenCount" class="wb-pill wb-pill-generated">生成 0</span>
       <span id="wbManualCount" class="wb-pill wb-pill-manual">手动 0</span>
       <span id="wbImportCount" class="wb-pill wb-pill-import">导入 0</span>
     </div>
@@ -24,28 +24,6 @@
 
   <div class="wb-shell">
     <aside class="wb-column wb-browser">
-      <div class="wb-card wb-quick-card">
-        <div class="wb-card-head">
-          <div>
-            <h3>单条补充</h3>
-            <p class="wb-card-desc">基于当前角色与已有条目补一条，适合局部扩展。</p>
-          </div>
-          <span class="wb-pill wb-pill-ai">AI</span>
-        </div>
-
-        <div class="wb-quick-form">
-          <div class="wb-input-row">
-            <input type="text" id="wbSinglePrompt" placeholder="定向要求(可选)，如：写一把专属武器..." />
-            <button id="btnAiSingleWb" class="btn btn-ai" style="width:auto; white-space:nowrap;">🎲 生成 1 条</button>
-          </div>
-
-          <label class="wb-check">
-            <input type="checkbox" id="wbIncludeCharData" checked />
-            <span>融合角色信息</span>
-          </label>
-        </div>
-      </div>
-
       <div class="wb-card wb-list-card">
         <div class="wb-card-head">
           <div>
@@ -56,7 +34,7 @@
 
         <div class="wb-filter-bar" role="tablist" aria-label="世界书筛选">
           <button class="wb-filter-pill is-active" type="button" data-wb-filter="all">全部 <span data-filter-count="all">0</span></button>
-          <button class="wb-filter-pill" type="button" data-wb-filter="ai">AI 生成 <span data-filter-count="ai">0</span></button>
+          <button class="wb-filter-pill" type="button" data-wb-filter="ai">生成 <span data-filter-count="ai">0</span></button>
           <button class="wb-filter-pill" type="button" data-wb-filter="manual">手动 <span data-filter-count="manual">0</span></button>
           <button class="wb-filter-pill" type="button" data-wb-filter="import">导入 <span data-filter-count="import">0</span></button>
         </div>
@@ -150,17 +128,6 @@
           </div>
         </div>
 
-        <div class="wb-card wb-organize-card">
-          <div class="wb-card-head">
-            <div>
-              <h3>AI 智能整理</h3>
-              <p class="wb-card-desc">只校准 depth / order / probability，不占主区。</p>
-            </div>
-            <button id="btnAiOrganize" class="btn btn-organize-magic" type="button">⚡ 一键整理</button>
-          </div>
-          <div id="organizeStatus" class="wb-status"></div>
-          <div id="organizePreview" class="organize-preview-container" style="display:none;"></div>
-        </div>
       </div>
 
       <div class="wb-mode-panel wb-mode-preview" data-wb-mode-panel="preview" hidden>
@@ -176,7 +143,7 @@
 
             <div class="wb-preview-filter-bar" role="tablist" aria-label="世界书筛选">
               <button class="wb-filter-pill is-active" type="button" data-wb-filter="all">全部 <span data-filter-count="all">0</span></button>
-              <button class="wb-filter-pill" type="button" data-wb-filter="ai">AI 生成 <span data-filter-count="ai">0</span></button>
+              <button class="wb-filter-pill" type="button" data-wb-filter="ai">生成 <span data-filter-count="ai">0</span></button>
               <button class="wb-filter-pill" type="button" data-wb-filter="manual">手动 <span data-filter-count="manual">0</span></button>
               <button class="wb-filter-pill" type="button" data-wb-filter="import">导入 <span data-filter-count="import">0</span></button>
             </div>
@@ -363,6 +330,18 @@
     min-height: 0;
   }
 
+  .wb-mode-panel[hidden] {
+    display: none !important;
+  }
+
+  .wb-shell.is-preview-mode .wb-mode-edit {
+    display: none !important;
+  }
+
+  .wb-shell.is-preview-mode .wb-mode-preview {
+    display: flex !important;
+  }
+
   .wb-card {
     background: var(--surface-strong);
     border: 1px solid var(--border);
@@ -405,7 +384,7 @@
     white-space: nowrap;
   }
 
-  .wb-pill-ai {
+  .wb-pill-generated {
     color: var(--accent);
   }
 
@@ -418,27 +397,6 @@
   }
 
   .wb-pill-neutral {
-    color: var(--muted);
-  }
-
-  .wb-quick-form {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  .wb-input-row {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 10px;
-    align-items: center;
-  }
-
-  .wb-check {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 0.76rem;
     color: var(--muted);
   }
 
@@ -559,9 +517,7 @@
   }
 
   .wb-btn-edit,
-  .wb-btn-reroll,
-  .wb-btn-delete,
-  .wb-btn-reroll-submit {
+  .wb-btn-delete {
     width: auto !important;
     padding: 6px 10px !important;
     font-size: 0.74rem !important;
@@ -574,29 +530,10 @@
     border: 1px solid var(--border) !important;
   }
 
-  .wb-btn-reroll,
-  .wb-btn-reroll-submit {
-    background: var(--accent) !important;
-    color: #fff !important;
-    border: none !important;
-  }
-
   .wb-btn-delete {
     background: var(--surface-2) !important;
     color: var(--danger) !important;
     border: 1px solid var(--border) !important;
-  }
-
-  .wb-reroll-area {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding-top: 8px;
-    border-top: 1px solid var(--border);
-  }
-
-  .wb-reroll-area input {
-    width: 100%;
   }
 
   .wb-chip,
@@ -613,7 +550,7 @@
     color: var(--muted);
   }
 
-  .wb-source-ai {
+  .wb-source-generated {
     color: var(--accent);
     background: rgba(67, 97, 238, 0.08);
   }
@@ -669,12 +606,6 @@
     margin-top: 2px;
   }
 
-  .wb-organize-card {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-
   .wb-preview-layout {
     display: grid;
     grid-template-columns: minmax(320px, 0.42fr) minmax(0, 1fr);
@@ -722,205 +653,12 @@
     border-color: var(--border-strong) !important;
   }
 
-  .wb-preview-detail-card {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-
-  .wb-preview-list-card {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    min-height: 0;
-  }
-
   .wb-status {
     min-height: 20px;
     font-size: 0.76rem;
     color: var(--muted);
     line-height: 1.4;
   }
-
-  .wb-organize-card .btn-organize-magic {
-    width: auto;
-    padding: 8px 14px;
-    white-space: nowrap;
-  }
-
-  .organize-preview-container {
-    border-radius: 16px;
-    border: 1px solid var(--border);
-    background: var(--surface-2);
-    overflow: hidden;
-  }
-
-  .organize-preview-header {
-    background: var(--surface);
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-  }
-
-  .preview-header-title {
-    font-size: 0.82rem;
-    font-weight: 700;
-    color: var(--text);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .preview-header-badge {
-    font-size: 0.64rem;
-    background: rgba(21, 128, 61, 0.08);
-    color: var(--success);
-    padding: 3px 10px;
-    border-radius: 999px;
-    font-weight: 700;
-    border: 1px solid rgba(21, 128, 61, 0.18);
-    white-space: nowrap;
-  }
-
-  .organize-table-wrap {
-    max-height: 260px;
-    overflow-y: auto;
-  }
-
-  .organize-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.72rem;
-  }
-
-  .organize-table th {
-    background: var(--surface);
-    color: var(--muted);
-    padding: 10px 12px;
-    text-align: left;
-    font-weight: 700;
-    font-size: 0.66rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    position: sticky;
-    top: 0;
-    z-index: 1;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .organize-table td {
-    padding: 9px 12px;
-    border-bottom: 1px solid var(--border);
-    color: var(--text);
-    transition: none;
-  }
-
-  .organize-table tr:hover td {
-    background: rgba(67, 97, 238, 0.04);
-  }
-
-  .organize-table tr:last-child td {
-    border-bottom: none;
-  }
-
-  .org-name-cell {
-    max-width: 110px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-weight: 600;
-    color: var(--text);
-  }
-
-  .org-value-cell {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.7rem;
-  }
-
-  .org-changed {
-    color: var(--success) !important;
-    font-weight: 700;
-    background: rgba(21, 128, 61, 0.08);
-    padding: 2px 6px;
-    border-radius: 999px;
-    border: 1px solid rgba(21, 128, 61, 0.18);
-  }
-
-  .org-old {
-    color: var(--muted-2);
-    text-decoration: line-through;
-    font-size: 0.62rem;
-    margin-right: 5px;
-  }
-
-  .org-reason-cell {
-    max-width: 150px;
-    font-size: 0.64rem;
-    color: var(--muted);
-    line-height: 1.4;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .organize-footer {
-    padding: 12px 16px;
-    background: var(--surface);
-    border-top: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    flex-wrap: wrap;
-  }
-
-  .organize-stats {
-    font-size: 0.7rem;
-    color: var(--muted);
-  }
-
-  .organize-stats strong {
-    color: var(--success);
-    font-weight: 700;
-  }
-
-  .organize-actions {
-    display: flex;
-    gap: 10px;
-  }
-
-  .btn-org-apply {
-    background: var(--accent) !important;
-    color: #fff !important;
-    padding: 8px 18px !important;
-    font-size: 0.76rem !important;
-    font-weight: 700 !important;
-    border: none !important;
-    border-radius: 999px !important;
-    cursor: pointer;
-    font-family: inherit;
-  }
-
-  .btn-org-cancel {
-    background: var(--surface-2) !important;
-    color: var(--muted) !important;
-    padding: 8px 16px !important;
-    font-size: 0.76rem !important;
-    font-weight: 600 !important;
-    border: 1px solid var(--border) !important;
-    border-radius: 999px !important;
-    cursor: pointer;
-    font-family: inherit;
-  }
-
-  .btn-org-cancel:hover {
-    background: var(--surface-3) !important;
-    color: var(--text) !important;
-  }
-
   .wb-editor .btn,
   .wb-browser .btn {
     width: auto;

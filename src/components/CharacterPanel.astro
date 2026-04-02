@@ -7,7 +7,7 @@
       <span>💾 多卡片草稿箱</span>
       <span id="saveIndicator" style="color: #3b82f6; font-size: 0.75rem; display: none; font-weight: 600;">✔️ 已保存</span>
     </label>
-    <select id="draftSelect"></select>
+    <select id="draftSelect" data-native-select="true"></select>
     <div class="draft-controls">
       <button id="btnNewDraft" class="btn btn-add" style="flex: 1;">📄 新建</button>
       <button id="btnDeleteDraft" class="btn btn-delete" style="flex: 1; width: 100%;">🗑️ 删除</button>
@@ -30,9 +30,15 @@
 
   <!-- 基础信息 -->
   <div class="grid-2">
-    <div class="form-group">
-      <label>角色名 (Name)</label>
-      <input type="text" id="charName" placeholder="角色名称" />
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div class="form-group">
+        <label>角色名 (Name)</label>
+        <input type="text" id="charName" placeholder="角色名称" />
+      </div>
+      <div class="form-group">
+        <label>作者注释 (Creator Notes)</label>
+        <textarea id="creatorNotes" placeholder="给使用者的说明..."></textarea>
+      </div>
     </div>
     <div class="form-group">
       <label>世界书名 (Worldbook)</label>
@@ -42,12 +48,12 @@
 
   <div class="form-group">
     <label>角色描述 (Description)</label>
-    <textarea id="charDesc" style="min-height: 130px;" placeholder="角色的外貌、性格、背景故事..."></textarea>
+    <textarea id="charDesc" style="min-height: 240px;" placeholder="角色的外貌、性格、背景故事..."></textarea>
   </div>
 
   <div class="form-group">
     <label>第一条消息 (First Message)</label>
-    <textarea id="firstMes" style="min-height: 130px;" placeholder="角色的开场白..."></textarea>
+    <textarea id="firstMes" style="min-height: 220px;" placeholder="角色的开场白..."></textarea>
   </div>
 
   <!-- ★ 备选开场白 -->
@@ -60,13 +66,6 @@
     </div>
     <p class="alt-greetings-tip">酒馆中用户可在多个开场白之间切换选择</p>
     <div id="altGreetingsList"></div>
-  </div>
-
-  <hr class="divider" />
-
-  <div class="form-group">
-    <label>作者注释 (Creator Notes)</label>
-    <textarea id="creatorNotes" placeholder="给使用者的说明..."></textarea>
   </div>
 </div>
 

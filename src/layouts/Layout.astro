@@ -268,7 +268,7 @@ const { title } = Astro.props;
         align-items: start;
       }
       .workspace-grid-core {
-        grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
+        grid-template-columns: minmax(0, 1fr);
       }
       .workspace-grid-worldbook {
         grid-template-columns: minmax(0, 1.2fr) minmax(340px, 0.8fr);
@@ -649,14 +649,6 @@ const { title } = Astro.props;
       .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
       .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
 
-      /* ========== 面板主题变体 ========== */
-      .ai-panel {
-        border-color: rgba(139, 92, 246, 0.25);
-        background: linear-gradient(180deg, rgba(13, 18, 32, 0.95), rgba(15, 23, 37, 0.92));
-      }
-      .ai-panel:hover { border-color: rgba(139, 92, 246, 0.4); }
-      .ai-panel h2 { border-color: rgba(139, 92, 246, 0.25); color: #d8b4fe; }
-
       .sb-panel {
         border-color: rgba(245, 158, 11, 0.25);
         background: linear-gradient(180deg, rgba(13, 18, 32, 0.95), rgba(15, 23, 37, 0.92));
@@ -671,15 +663,6 @@ const { title } = Astro.props;
         min-height: 20px;
         margin-top: 10px;
         font-weight: 600;
-      }
-
-      /* ========== 预设上传区 ========== */
-      .preset-upload {
-        border: 1px dashed rgba(99, 102, 241, 0.4);
-        padding: 14px;
-        border-radius: 10px;
-        background: rgba(99, 102, 241, 0.05);
-        margin-bottom: 16px;
       }
 
       /* ========== 草稿管理器 ========== */
@@ -1122,7 +1105,7 @@ const { title } = Astro.props;
         color: #fca5a5;
         font-size: 0.75rem;
       }
-            /* ========== AI 智能整理美化 ========== */
+      /* ========== 世界书整理美化（已停用） ========== */
       .wb-organize-wrap {
         background: linear-gradient(135deg, rgba(251, 191, 36, 0.1) 0%, rgba(139, 92, 246, 0.06) 50%, rgba(6, 182, 212, 0.04) 100%);
         border: 1px solid rgba(251, 191, 36, 0.35);
@@ -1835,6 +1818,7 @@ const { title } = Astro.props;
 
       function enhanceSelect(sel) {
         if (sel.classList.contains('cs-hidden')) return;
+        if (sel.hasAttribute('data-native-select')) return;
         // 跳过 display:none 的 select（如 chatMaxTokens）
         if (sel.offsetParent === null && sel.style.display === 'none') return;
 
@@ -1977,7 +1961,7 @@ const { title } = Astro.props;
 
       // 初始增强
       function init() {
-        document.querySelectorAll('select:not(.cs-hidden)').forEach(enhanceSelect);
+        document.querySelectorAll('select:not(.cs-hidden):not([data-native-select])').forEach(enhanceSelect);
       }
 
       // DOM ready 后执行
