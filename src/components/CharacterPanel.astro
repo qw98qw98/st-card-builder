@@ -1,4 +1,5 @@
 ---
+import StatusBarPanel from './StatusBarPanel.astro';
 ---
 <div class="panel area-character">
   <!-- 草稿管理 -->
@@ -56,6 +57,10 @@
     <textarea id="firstMes" style="min-height: 220px;" placeholder="角色的开场白..."></textarea>
   </div>
 
+  <div class="statusbar-inline">
+    <StatusBarPanel />
+  </div>
+
   <!-- ★ 备选开场白 -->
   <div class="alt-greetings-section">
     <div class="alt-greetings-header">
@@ -73,6 +78,14 @@
   /* ── 备选开场白区域 ── */
   .alt-greetings-section {
     margin-bottom: 14px;
+  }
+
+  .statusbar-inline {
+    margin: 4px 0 14px;
+  }
+
+  .statusbar-inline .panel.area-statusbar {
+    margin-top: 0;
   }
   .alt-greetings-header {
     display: flex;

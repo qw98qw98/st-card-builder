@@ -3,7 +3,6 @@ import Layout from '../layouts/Layout.astro';
 import ImportExportCenter from '../components/ImportExportCenter.astro';
 import CharacterPanel from '../components/CharacterPanel.astro';
 import WorldbookPanel from '../components/WorldbookPanel.astro';
-import StatusBarPanel from '../components/StatusBarPanel.astro';
 ---
 
 <Layout title="然然工坊">
@@ -64,7 +63,6 @@ import StatusBarPanel from '../components/StatusBarPanel.astro';
       </div>
       <div class="workspace-stack">
         <WorldbookPanel />
-        <StatusBarPanel />
       </div>
     </section>
   </div>
@@ -280,13 +278,13 @@ import StatusBarPanel from '../components/StatusBarPanel.astro';
     var worldbookEntries     = [];
     var regexScripts         = [];
     var tavernHelperScripts  = [];  // ScriptTree[] — 酒馆助手脚本
-    var currentAvatarBase64  = "";
+    var currentAvatarSrc     = "";
+    var currentAvatarExportBase64 = "";
     var currentDraftId       = "";
     var editingIndex         = -1;
     var selectedWorldbookIndex = -1;
     var worldbookBrowseFilter = 'all';
     var worldbookMode        = 'edit';
-    var statusBarActive      = true;
     var previewTypeahead     = '';
     var previewTypeaheadTimer = null;
 
@@ -1260,18 +1258,6 @@ import StatusBarPanel from '../components/StatusBarPanel.astro';
     // ============================================================
     window.triggerGlobalUpdate = function() { debouncedUpdateAndSave(); };
 
-    window.injectStatusBarGlobal = function(wbEntry, regexOrArray) {
-      var idx = -1;
-      for (var i = 0; i < worldbookEntries.length; i++) {
-        if (worldbookEntries[i].comment === wbEntry.comment) { idx = i; break; }
-      }
-      var nextEntry = normalizeWorldbookEntry(wbEntry, wbEntry && wbEntry.source ? wbEntry.source : 'manual');
-      if (idx >= 0) worldbookEntries[idx] = nextEntry; else worldbookEntries.push(nextEntry);
-      regexScripts = Array.isArray(regexOrArray) ? regexOrArray : [regexOrArray];
-      renderEntriesList();
-      debouncedUpdateAndSave();
-    };
-
     // ★ 变量卡生成器 — 批量注入世界书条目 & 正则脚本
     window.__injectMvuEntries__ = function(entries, newRegexScripts) {
       if (!Array.isArray(entries)) return;
@@ -1324,11 +1310,6 @@ import StatusBarPanel from '../components/StatusBarPanel.astro';
       debouncedUpdateAndSave();
     };
 
-    window.setStatusBarActiveState = function(active) {
-      statusBarActive = active;
-      debouncedUpdateAndSave();
-    };
-
     wbFilterButtons.forEach(function(btn) {
       btn.addEventListener('click', function() {
         setWorldbookFilter(btn.getAttribute('data-wb-filter') || 'all');
@@ -1360,13 +1341,23 @@ window.applyJSONFromEditor = function(json) {
       ? card.statusBlockConfig
       : (root.statusBlockConfig && typeof root.statusBlockConfig === 'object'
         ? root.statusBlockConfig
-        : (json.statusBlockConfig && typeof json.statusBlockConfig === 'object' ? json.statusBlockConfig : { description: '', properties: {}, required: [] })),
+        : (json.statusBlockConfig && typeof json.statusBlockConfig === 'object' ? json.statusBlockConfig : { description: '' })),
+    presetStatusBlock: String(card.presetStatusBlock || root.presetStatusBlock || json.presetStatusBlock || '').trim(),
     characterBookDescription: String(importedCharacterBook.description || '').trim(),
     characterBookScanDepth: importedCharacterBook.scan_depth !== undefined ? safeInt(importedCharacterBook.scan_depth, 3) : 3,
     characterBookTokenBudget: importedCharacterBook.token_budget !== undefined ? safeInt(importedCharacterBook.token_budget, 1800000000) : 1800000000,
     characterBookRecursiveScanning: importedCharacterBook.recursive_scanning !== undefined ? !!importedCharacterBook.recursive_scanning : true
   };
   window.__importedWorldbookMeta__ = null;
+
+  if (window.__loadStatusBarData__) {
+    window.__loadStatusBarData__({
+      description: window.__importedCardMeta__.statusBlockConfig && window.__importedCardMeta__.statusBlockConfig.description
+        ? String(window.__importedCardMeta__.statusBlockConfig.description).trim()
+        : '',
+      presetStatusBlock: window.__importedCardMeta__.presetStatusBlock || ''
+    });
+  }
 
   charName.value = card.charName;
   wbName.value = card.wbName;
@@ -1386,19 +1377,26 @@ window.applyJSONFromEditor = function(json) {
   window.__altGreetings__ = card.altGreetings;
   if (window.__renderAltGreetings__) window.__renderAltGreetings__();
 
-  if (card.avatarBase64) {
-    window.__setImportedAvatar__(card.avatarBase64, true);
+  if (card.avatarSrc) {
+    window.__setImportedAvatar__(card.avatarSrc, true, card.avatarBase64 || '');
   }
 
   commitImportedState();
 };
 
 // ★ 导入卡片时恢复头像（给 PreviewPanel 的 PNG 导入调用）
-window.__setImportedAvatar__ = function(base64, skipCommit) {
-  currentAvatarBase64 = base64;
-  avatarImg.src = base64;
-  avatarImg.style.display = 'block';
-  avatarPlaceholder.style.display = 'none';
+window.__setImportedAvatar__ = function(src, skipCommit, exportBase64) {
+  currentAvatarSrc = String(src || '');
+  currentAvatarExportBase64 = exportBase64 || '';
+  if (currentAvatarSrc) {
+    avatarImg.src = currentAvatarSrc;
+    avatarImg.style.display = 'block';
+    avatarPlaceholder.style.display = 'none';
+  } else {
+    avatarImg.removeAttribute('src');
+    avatarImg.style.display = 'none';
+    avatarPlaceholder.style.display = 'block';
+  }
   if (!skipCommit) {
     commitImportedState({ resetEditor: false });
   }
@@ -1460,10 +1458,10 @@ window.__setImportedAvatar__ = function(base64, skipCommit) {
     // ============================================================
     if (btnExportPNG) {
       btnExportPNG.addEventListener('click', function() {
-        if (!currentAvatarBase64) return alert("❌ 请先上传头像！");
+        if (!currentAvatarExportBase64) return alert("❌ 请先上传头像（需要可导出的 PNG/base64 头像）！");
         try {
           var ch  = createTextChunk('chara', JSON.stringify(generateSillyTavernJSON()));
-          var raw = atob(currentAvatarBase64.split(',')[1]);
+          var raw = atob(currentAvatarExportBase64.split(',')[1]);
           var bytes = new Uint8Array(raw.length);
           for (var i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
           var io  = bytes.length - 12;
@@ -1558,7 +1556,8 @@ window.__setImportedAvatar__ = function(base64, skipCommit) {
       setWorldbookEditorMeta(-1);
       regexScripts       = d.regexScripts     || [];
       tavernHelperScripts = Array.isArray(d.tavernHelperScripts) ? d.tavernHelperScripts : [];
-      currentAvatarBase64 = d.avatarBase64    || '';
+      currentAvatarSrc = d.avatarSrc || d.avatarBase64 || '';
+      currentAvatarExportBase64 = /^data:image\/[a-z0-9.+-]+;base64,/i.test(d.avatarBase64 || '') ? d.avatarBase64 : (/^data:image\/[a-z0-9.+-]+;base64,/i.test(currentAvatarSrc) ? currentAvatarSrc : '');
       window.__altGreetings__ = d.altGreetings || [];
       window.__importedCardMeta__ = d.importedCardMeta || null;
       window.__importedWorldbookMeta__ = d.importedWorldbookMeta || null;
@@ -1568,9 +1567,10 @@ window.__setImportedAvatar__ = function(base64, skipCommit) {
         window.__loadStatusBarData__(d.statusBarData);
       }
       resetWBForm();
-      if (currentAvatarBase64) {
-        avatarImg.src = currentAvatarBase64; avatarImg.style.display = 'block'; avatarPlaceholder.style.display = 'none';
+      if (currentAvatarSrc) {
+        avatarImg.src = currentAvatarSrc; avatarImg.style.display = 'block'; avatarPlaceholder.style.display = 'none';
       } else {
+        avatarImg.removeAttribute('src');
         avatarImg.style.display = 'none'; avatarPlaceholder.style.display = 'block';
       }
       if (importAssetText) importAssetText.value = '';
@@ -1592,7 +1592,8 @@ window.__setImportedAvatar__ = function(base64, skipCommit) {
         worldbookEntries: worldbookEntries,
         regexScripts:    regexScripts,
         tavernHelperScripts: tavernHelperScripts,
-        avatarBase64:    currentAvatarBase64,
+        avatarSrc:       currentAvatarSrc,
+        avatarBase64:    currentAvatarExportBase64,
         altGreetings:    window.__altGreetings__ || [],
         importedCardMeta: window.__importedCardMeta__ || null,
         importedWorldbookMeta: window.__importedWorldbookMeta__ || null,
@@ -1633,18 +1634,22 @@ window.__setImportedAvatar__ = function(base64, skipCommit) {
       }
       currentDraftId = genId();
       charName.value = ''; wbName.value = ''; charDesc.value = ''; firstMes.value = ''; creatorNotes.value = '';
-      worldbookEntries = []; regexScripts = []; tavernHelperScripts = []; currentAvatarBase64 = '';
+      worldbookEntries = []; regexScripts = []; tavernHelperScripts = []; currentAvatarSrc = ''; currentAvatarExportBase64 = '';
       window.__importedCardMeta__ = null;
       window.__importedWorldbookMeta__ = null;
       selectedWorldbookIndex = -1;
       worldbookBrowseFilter = 'all';
       updateWorldbookFilterUI();
       setWorldbookEditorMeta(-1);
+      avatarImg.removeAttribute('src');
       avatarImg.style.display = 'none'; avatarPlaceholder.style.display = 'block';
       window.__altGreetings__ = [];
       if (window.__renderAltGreetings__) window.__renderAltGreetings__();
       // ★ 新建草稿时重置状态栏
-      if (window.__loadStatusBarData__) window.__loadStatusBarData__(null);
+      if (window.__loadStatusBarData__) window.__loadStatusBarData__({
+        description: '',
+        presetStatusBlock: ''
+      });
       if (importAssetText) importAssetText.value = '';
       showImportStatus('等待导入', 'info');
       resetWBForm(); saveCurrentDraft(); updateDraftDropdown(); renderEntriesList(); updatePreview();
@@ -1750,7 +1755,7 @@ window.__setImportedAvatar__ = function(base64, skipCommit) {
           var avatarBase64 = results[1];
           var charaB64 = extractPNGCharaChunk(bytes);
           if (!charaB64) {
-            window.__setImportedAvatar__(avatarBase64);
+            window.__setImportedAvatar__(avatarBase64, false, avatarBase64);
             showImportStatus('✅ 已更新头像「' + (fallbackName || file.name) + '」', 'ok');
             return;
           }
@@ -1762,7 +1767,7 @@ window.__setImportedAvatar__ = function(base64, skipCommit) {
           }
 
           applyJSONFromEditor(payload);
-          window.__setImportedAvatar__(avatarBase64);
+          window.__setImportedAvatar__(avatarBase64, false, avatarBase64);
           var card = normalizeImportedCharacterCard(payload);
           showImportStatus(
             '✅ 已导入角色卡「' + (card && card.charName ? card.charName : fallbackName || file.name) + '」并更新头像',
@@ -1916,10 +1921,11 @@ window.__setImportedAvatar__ = function(base64, skipCommit) {
         return 4;
       }
 
-      function normalizeAvatarBase64(value) {
+      function normalizeAvatarSrc(value) {
         var str = String(value || '').trim();
         if (!str || str.toLowerCase() === 'none') return '';
         if (/^data:image\/[a-z0-9.+-]+;base64,/i.test(str)) return str;
+        if (/^https?:\/\//i.test(str) || /^\/\//.test(str) || /^\/[^/]/.test(str)) return str;
         return '';
       }
 
@@ -1941,10 +1947,11 @@ window.__setImportedAvatar__ = function(base64, skipCommit) {
         ? root.statusBlockConfig
         : (json.statusBlockConfig && typeof json.statusBlockConfig === 'object'
           ? json.statusBlockConfig
-          : { description: '', properties: {}, required: [] });
+          : { description: '' });
+      var presetStatusBlock = String(root.presetStatusBlock || json.presetStatusBlock || '').trim();
       var regexScripts = [];
       var tavernHelperScripts = [];
-      var avatarBase64 = normalizeAvatarBase64(json.avatar || root.avatar || '');
+      var avatarSrc = normalizeAvatarSrc(json.avatar || root.avatar || '');
 
       var characterBook = root.character_book || json.character_book || null;
       var entries = [];
@@ -1970,6 +1977,7 @@ window.__setImportedAvatar__ = function(base64, skipCommit) {
         nickname: nickname,
         gender: gender,
         statusBlockConfig: statusBlockConfig,
+        presetStatusBlock: presetStatusBlock,
         worldbookEntries: entries.map(function(e) {
           return normalizeWorldbookEntry({
             comment: e && (e.comment || e.title || e.name) || '',
@@ -2003,7 +2011,7 @@ window.__setImportedAvatar__ = function(base64, skipCommit) {
           ? root.extensions.tavern_helper.scripts.slice()
           : tavernHelperScripts,
         altGreetings: altGreetings,
-        avatarBase64: avatarBase64
+        avatarSrc: avatarSrc
       };
     }
 
@@ -2399,10 +2407,9 @@ window.__setImportedAvatar__ = function(base64, skipCommit) {
         nickname: meta.nickname || cn || '',
         gender: meta.gender || 'N/A',
         statusBlockConfig: meta.statusBlockConfig || {
-          description: '',
-          properties: {},
-          required: []
-        }
+          description: ''
+        },
+        presetStatusBlock: meta.presetStatusBlock || ''
       };
     }
 
