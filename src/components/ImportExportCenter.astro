@@ -1,0 +1,236 @@
+---
+---
+<div class="panel area-import-export import-export-center">
+  <div class="iec-head">
+    <div>
+      <h2>📦 导入 / 导出中心</h2>
+      <p class="iec-desc">统一处理世界书 JSON、快速回复 QR、香草 AI 角色卡、SillyTavern 角色卡和 PNG 头像 / 卡片。</p>
+    </div>
+    <span id="importAssetStatus" class="iec-status">等待导入</span>
+  </div>
+
+  <div class="iec-grid">
+    <section class="iec-card ie-import-card">
+      <div class="iec-card-head">
+        <div>
+          <h3>导入</h3>
+          <p class="iec-card-desc">文件和粘贴都走同一个自动识别入口。</p>
+        </div>
+        <span class="iec-pill">AUTO</span>
+      </div>
+
+      <div class="iec-actions">
+        <input type="file" id="importAssetInput" accept=".json,.png,application/json,image/png" />
+        <button id="btnImportAssetFile" class="btn btn-fetch" type="button" style="margin:0;">选择文件导入</button>
+        <button id="btnImportAssetText" class="btn btn-fetch" type="button" style="margin:0;">粘贴内容导入</button>
+      </div>
+
+      <div class="form-group" style="margin-bottom:0;">
+        <label>JSON / 卡片内容</label>
+        <textarea id="importAssetText" class="iec-textarea" placeholder="粘贴世界书 JSON、快速回复 QR JSON、香草 AI 角色卡 JSON、SillyTavern 角色卡 JSON，或拖入 .json /.png 文件"></textarea>
+      </div>
+
+      <p class="iec-card-tip">PNG 文件会优先尝试读取卡片数据；没有 `chara` 的 PNG 会按纯头像处理。</p>
+    </section>
+
+    <section class="iec-card ie-export-card">
+      <div class="iec-card-head">
+        <div>
+          <h3>导出</h3>
+          <p class="iec-card-desc">先选格式，再导出对应文件。</p>
+        </div>
+        <span class="iec-pill ie-pill-export">EXPORT</span>
+      </div>
+
+      <div class="iec-export-row">
+        <div class="export-menu-shell">
+          <button id="btnExportMenu" class="btn btn-fetch ie-export-menu-btn" type="button">💾 导出格式</button>
+          <div id="exportFormatMenu" class="export-format-menu" hidden>
+            <button type="button" class="export-format-item" data-export-format="vanilla">香草 AI 角色卡</button>
+            <button type="button" class="export-format-item" data-export-format="st">SillyTavern 角色卡</button>
+            <button type="button" class="export-format-item" data-export-format="worldbook-md">世界书 md</button>
+          </div>
+        </div>
+
+        <button id="btnExportPNG" class="btn btn-img" type="button" style="margin:0;">📸 导出 PNG</button>
+      </div>
+
+      <p class="iec-card-tip">空字段会保留 key，并补默认值，不会因为未编辑就消失。</p>
+    </section>
+  </div>
+</div>
+
+<style is:global>
+  .import-export-center {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    background:
+      radial-gradient(circle at top right, rgba(56, 189, 248, 0.12), transparent 28%),
+      radial-gradient(circle at bottom left, rgba(139, 92, 246, 0.12), transparent 30%),
+      linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0.88));
+    border: 1px solid rgba(96, 165, 250, 0.18);
+  }
+
+  .iec-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .iec-head h2 {
+    margin: 0;
+  }
+
+  .iec-desc {
+    margin: 6px 0 0;
+    font-size: 0.78rem;
+    color: #94a3b8;
+    line-height: 1.5;
+  }
+
+  .iec-status {
+    flex-shrink: 0;
+    font-size: 0.68rem;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(56, 189, 248, 0.08);
+    border: 1px solid rgba(56, 189, 248, 0.18);
+    color: #7dd3fc;
+    margin-top: 4px;
+  }
+
+  .iec-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+    gap: 14px;
+  }
+
+  .iec-card {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 14px;
+    border-radius: 14px;
+    border: 1px solid rgba(71, 85, 105, 0.4);
+    background: rgba(2, 6, 23, 0.45);
+  }
+
+  .iec-card-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .iec-card-head h3 {
+    margin: 0;
+    font-size: 0.96rem;
+  }
+
+  .iec-card-desc {
+    margin: 4px 0 0;
+    font-size: 0.73rem;
+    color: #94a3b8;
+    line-height: 1.45;
+  }
+
+  .iec-pill {
+    flex-shrink: 0;
+    font-size: 0.62rem;
+    letter-spacing: 0.08em;
+    padding: 3px 8px;
+    border-radius: 999px;
+    color: #a5f3fc;
+    border: 1px solid rgba(56, 189, 248, 0.2);
+    background: rgba(56, 189, 248, 0.08);
+    font-weight: 700;
+  }
+
+  .iec-pill-export {
+    color: #c4b5fd;
+    border-color: rgba(139, 92, 246, 0.24);
+    background: rgba(139, 92, 246, 0.1);
+  }
+
+  .iec-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .iec-actions input[type="file"] {
+    display: none;
+  }
+
+  .iec-textarea {
+    min-height: 92px;
+    resize: vertical;
+  }
+
+  .iec-card-tip {
+    margin: -4px 0 0;
+    font-size: 0.72rem;
+    color: #64748b;
+    line-height: 1.5;
+  }
+
+  .iec-export-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .iec-export-menu-btn {
+    min-width: 148px;
+  }
+
+  .export-menu-shell {
+    position: relative;
+    display: inline-block;
+  }
+
+  .export-format-menu {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 6px);
+    z-index: 30;
+    min-width: 172px;
+    padding: 6px;
+    border-radius: 10px;
+    background: rgba(15, 23, 42, 0.98);
+    border: 1px solid rgba(71, 85, 105, 0.85);
+    box-shadow: 0 16px 30px rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(10px);
+  }
+
+  .export-format-item {
+    width: 100%;
+    display: block;
+    text-align: left;
+    border: 0;
+    background: transparent;
+    color: #e2e8f0;
+    font-size: 0.76rem;
+    line-height: 1.35;
+    padding: 8px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  .export-format-item:hover {
+    background: rgba(56, 189, 248, 0.12);
+    color: #f8fafc;
+  }
+
+  @media (max-width: 1100px) {
+    .iec-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

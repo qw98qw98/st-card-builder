@@ -1,5 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import ImportExportCenter from '../components/ImportExportCenter.astro';
 import AIPanel from '../components/AIPanel.astro';
 import CharacterPanel from '../components/CharacterPanel.astro';
 import WorldbookPanel from '../components/WorldbookPanel.astro';
@@ -59,9 +60,10 @@ import SecurityCordon from '../components/SecurityCordon.astro';
       <div class="workspace-section-header">
         <div>
           <h2 class="workspace-section-title">核心设置</h2>
-          <p class="workspace-section-desc">API 接入、角色基础信息与草稿管理</p>
+          <p class="workspace-section-desc">API 接入、导入导出、角色基础信息与草稿管理</p>
         </div>
       </div>
+      <ImportExportCenter />
       <div class="workspace-grid workspace-grid-core">
         <AIPanel />
         <CharacterPanel />
@@ -86,7 +88,7 @@ import SecurityCordon from '../components/SecurityCordon.astro';
       <div class="workspace-section-header">
         <div>
           <h2 class="workspace-section-title">预览与试聊</h2>
-          <p class="workspace-section-desc">JSON 预览、导入导出与对话回放</p>
+          <p class="workspace-section-desc">JSON 预览与对话回放</p>
         </div>
       </div>
       <div class="workspace-grid workspace-grid-preview">
@@ -278,9 +280,16 @@ import SecurityCordon from '../components/SecurityCordon.astro';
     var btnNewDraft          = document.getElementById('btnNewDraft');
     var btnDeleteDraft       = document.getElementById('btnDeleteDraft');
     var saveIndicator        = document.getElementById('saveIndicator');
-    var charImageInput       = document.getElementById('charImageInput');
     var avatarImg            = document.getElementById('avatarImg');
     var avatarPlaceholder    = document.getElementById('avatarPlaceholder');
+    var importAssetInput     = document.getElementById('importAssetInput');
+    var btnImportAssetFile   = document.getElementById('btnImportAssetFile');
+    var btnImportAssetText   = document.getElementById('btnImportAssetText');
+    var importAssetText      = document.getElementById('importAssetText');
+    var importAssetStatus    = document.getElementById('importAssetStatus');
+    var btnExportMenu        = document.getElementById('btnExportMenu');
+    var exportFormatMenu     = document.getElementById('exportFormatMenu');
+    var btnExportPNG         = document.getElementById('btnExportPNG');
     var charName             = document.getElementById('charName');
     var wbName               = document.getElementById('wbName');
     var charDesc             = document.getElementById('charDesc');
@@ -325,14 +334,6 @@ import SecurityCordon from '../components/SecurityCordon.astro';
     var btnCopyPreviewKeys   = document.getElementById('btnCopyPreviewKeys');
     var btnCopyPreviewContent= document.getElementById('btnCopyPreviewContent');
     var btnCopyPreviewAll    = document.getElementById('btnCopyPreviewAll');
-    var btnExportWorldbookMd = document.getElementById('btnExportWorldbookMd');
-    var btnDownloadJson      = document.getElementById('btnDownloadJson');
-    var btnExportPNG         = document.getElementById('btnExportPNG');
-    var worldbookImportInput = document.getElementById('worldbookImportInput');
-    var btnWorldbookImportFile = document.getElementById('btnWorldbookImportFile');
-    var btnWorldbookImportText = document.getElementById('btnWorldbookImportText');
-    var worldbookImportText  = document.getElementById('worldbookImportText');
-    var worldbookImportStatus = document.getElementById('worldbookImportStatus');
 
     // ============================================================
     //  状态
@@ -353,6 +354,8 @@ import SecurityCordon from '../components/SecurityCordon.astro';
     var previewTypeaheadTimer = null;
 
     if (!window.__altGreetings__) window.__altGreetings__ = [];
+    if (!window.__importedCardMeta__) window.__importedCardMeta__ = null;
+    if (!window.__importedWorldbookMeta__) window.__importedWorldbookMeta__ = null;
 
     var DRAFTS_KEY  = "st_v3_builder_drafts";
     var CURRENT_KEY = "st_v3_builder_current_id";
@@ -390,17 +393,37 @@ import SecurityCordon from '../components/SecurityCordon.astro';
         order: safeInt(entry.order !== undefined ? entry.order : entry.insertion_order, 100),
         prob: safeInt(entry.prob !== undefined ? entry.prob : entry.probability, 100),
         enabled: entry.enabled !== undefined ? !!entry.enabled : true,
+        disable: entry.disable !== undefined ? !!entry.disable : (entry.enabled !== undefined ? !entry.enabled : false),
+        addMemo: entry.addMemo !== undefined ? !!entry.addMemo : false,
+        ignoreBudget: entry.ignoreBudget !== undefined ? !!entry.ignoreBudget : false,
         useRegex: entry.useRegex !== undefined ? !!entry.useRegex : !!entry.use_regex,
+        caseSensitive: entry.caseSensitive !== undefined ? !!entry.caseSensitive : !!entry.case_sensitive,
+        matchPersonaDescription: entry.matchPersonaDescription !== undefined ? !!entry.matchPersonaDescription : !!entry.match_persona_description,
+        matchCharacterDescription: entry.matchCharacterDescription !== undefined ? !!entry.matchCharacterDescription : !!entry.match_character_description,
+        matchCharacterPersonality: entry.matchCharacterPersonality !== undefined ? !!entry.matchCharacterPersonality : !!entry.match_character_personality,
+        matchCharacterDepthPrompt: entry.matchCharacterDepthPrompt !== undefined ? !!entry.matchCharacterDepthPrompt : !!entry.match_character_depth_prompt,
+        matchScenario: entry.matchScenario !== undefined ? !!entry.matchScenario : !!entry.match_scenario,
+        matchCreatorNotes: entry.matchCreatorNotes !== undefined ? !!entry.matchCreatorNotes : !!entry.match_creator_notes,
+        useGroupScoring: entry.useGroupScoring !== undefined ? !!entry.useGroupScoring : (extensions.use_group_scoring !== undefined ? !!extensions.use_group_scoring : null),
         selectiveLogic: safeInt(entry.selectiveLogic !== undefined ? entry.selectiveLogic : extensions.selectiveLogic, 0),
         group: entry.group || extensions.group || '',
         groupWeight: safeInt(entry.groupWeight !== undefined ? entry.groupWeight : extensions.group_weight, 100),
         useProbability: entry.useProbability !== undefined ? !!entry.useProbability : (extensions.useProbability !== undefined ? !!extensions.useProbability : true),
+        matchWholeWords: entry.matchWholeWords !== undefined ? !!entry.matchWholeWords : (extensions.match_whole_words !== undefined ? !!extensions.match_whole_words : null),
+        automationId: entry.automationId || extensions.automation_id || '',
+        sticky: safeInt(entry.sticky !== undefined ? entry.sticky : extensions.sticky, 0),
+        cooldown: safeInt(entry.cooldown !== undefined ? entry.cooldown : extensions.cooldown, 0),
+        delay: safeInt(entry.delay !== undefined ? entry.delay : extensions.delay, 0),
+        triggers: Array.isArray(entry.triggers) ? entry.triggers.slice() : [],
+        displayIndex: safeInt(entry.displayIndex !== undefined ? entry.displayIndex : extensions.display_index, 0),
         excludeRecursion: entry.excludeRecursion !== undefined ? !!entry.excludeRecursion : !!extensions.exclude_recursion,
         preventRecursion: entry.preventRecursion !== undefined ? !!entry.preventRecursion : !!extensions.prevent_recursion,
         delayUntilRecursion: entry.delayUntilRecursion !== undefined ? !!entry.delayUntilRecursion : !!extensions.delay_until_recursion,
         groupOverride: entry.groupOverride !== undefined ? !!entry.groupOverride : !!extensions.group_override,
         vectorized: entry.vectorized !== undefined ? !!entry.vectorized : !!extensions.vectorized,
         outletName: entry.outletName || extensions.outlet_name || '',
+        characterFilter: entry.characterFilter || null,
+        raw: entry.raw || null,
         source: entry.source || fallbackSource || 'manual'
       };
     }
@@ -595,6 +618,9 @@ import SecurityCordon from '../components/SecurityCordon.astro';
 
     function getWorldbookImportName(payload, fallbackName) {
       if (!payload || typeof payload !== 'object') return fallbackName || '';
+      if (payload.originalData && payload.originalData.name && String(payload.originalData.name).trim()) {
+        return String(payload.originalData.name).trim();
+      }
       if (payload.data) {
         if (payload.data.character_book && payload.data.character_book.name && String(payload.data.character_book.name).trim()) {
           return String(payload.data.character_book.name).trim();
@@ -608,6 +634,27 @@ import SecurityCordon from '../components/SecurityCordon.astro';
       }
       if (payload.name && String(payload.name).trim()) return String(payload.name).trim();
       return fallbackName || '';
+    }
+
+    function getImportedWorldbookMeta(payload) {
+      payload = payload || {};
+      var source = payload.data && payload.data.character_book ? payload.data.character_book : payload;
+      var original = payload.originalData || {};
+      return {
+        sourceFormat: Array.isArray(payload.qrList) && payload.qrList.length ? 'quick-reply-bundle' : 'worldbook',
+        worldbookDescription: String(source.description || original.description || '').trim(),
+        worldbookScanDepth: source.scan_depth !== undefined ? safeInt(source.scan_depth, 3) : (original.scan_depth !== undefined ? safeInt(original.scan_depth, 3) : 3),
+        worldbookTokenBudget: source.token_budget !== undefined ? safeInt(source.token_budget, 1800000000) : (original.token_budget !== undefined ? safeInt(original.token_budget, 1800000000) : 1800000000),
+        worldbookRecursiveScanning: source.recursive_scanning !== undefined ? !!source.recursive_scanning : (original.recursive_scanning !== undefined ? !!original.recursive_scanning : true),
+        worldbookColor: payload.color || '',
+        worldbookOnlyBorderColor: payload.onlyBorderColor !== undefined ? !!payload.onlyBorderColor : false,
+        worldbookDisableSend: payload.disableSend !== undefined ? !!payload.disableSend : false,
+        worldbookPlaceBeforeInput: payload.placeBeforeInput !== undefined ? !!payload.placeBeforeInput : false,
+        worldbookInjectInput: payload.injectInput !== undefined ? !!payload.injectInput : false,
+        worldbookIdIndex: payload.idIndex !== undefined ? safeInt(payload.idIndex, 0) : 0,
+        quickReplyCount: Array.isArray(payload.qrList) ? payload.qrList.length : 0,
+        quickReplies: Array.isArray(payload.qrList) ? payload.qrList.slice() : []
+      };
     }
 
     function getImportedWorldbookEntries(payload) {
@@ -651,6 +698,71 @@ import SecurityCordon from '../components/SecurityCordon.astro';
             return payload.entries[key];
           })
           .filter(function(entry) { return entry !== undefined && entry !== null; });
+      } else if (payload.originalData && Array.isArray(payload.originalData.entries)) {
+        entries = payload.originalData.entries.slice();
+      } else if (payload.originalData && payload.originalData.entries && typeof payload.originalData.entries === 'object') {
+        entries = Object.keys(payload.originalData.entries)
+          .sort(function(a, b) {
+            var na = parseInt(a, 10);
+            var nb = parseInt(b, 10);
+            if (isNaN(na) || isNaN(nb)) return String(a).localeCompare(String(b), 'zh-Hans-CN');
+            return na - nb;
+          })
+          .map(function(key) {
+            return payload.originalData.entries[key];
+          })
+          .filter(function(entry) { return entry !== undefined && entry !== null; });
+      }
+
+      if (!entries.length && Array.isArray(payload.qrList)) {
+        entries = payload.qrList.map(function(item, index) {
+          var label = String(item && (item.label || item.title || item.name) || '').trim();
+          var message = String(item && item.message || '').trim();
+          return {
+            comment: label || ('快速回复 ' + String(index + 1)),
+            content: message,
+            keys: [],
+            secondaryKeys: [],
+            strategy: 'constant',
+            position: 4,
+            depth: 4,
+            role: 0,
+            order: safeInt(item && item.id, index + 1),
+            prob: 100,
+            enabled: true,
+            disable: false,
+            addMemo: false,
+            ignoreBudget: false,
+            useRegex: false,
+            caseSensitive: false,
+            matchPersonaDescription: false,
+            matchCharacterDescription: false,
+            matchCharacterPersonality: false,
+            matchCharacterDepthPrompt: false,
+            matchScenario: false,
+            matchCreatorNotes: false,
+            selectiveLogic: 0,
+            group: '',
+            groupWeight: 100,
+            useProbability: true,
+            matchWholeWords: null,
+            automationId: '',
+            sticky: 0,
+            cooldown: 0,
+            delay: 0,
+            triggers: [],
+            displayIndex: index,
+            excludeRecursion: false,
+            preventRecursion: false,
+            delayUntilRecursion: false,
+            groupOverride: false,
+            vectorized: false,
+            outletName: '',
+            characterFilter: null,
+            raw: item || null,
+            source: 'import'
+          };
+        });
       }
 
       return entries.map(function(entry, index) {
@@ -670,6 +782,7 @@ import SecurityCordon from '../components/SecurityCordon.astro';
         var strategy = entry && entry.strategy
           ? entry.strategy
           : (constant ? 'constant' : (vectorized ? 'vectorized' : 'selective'));
+        var disable = entry && entry.disable !== undefined ? !!entry.disable : (entry && entry.enabled !== undefined ? !entry.enabled : false);
 
         return normalizeWorldbookEntry({
           comment: entry && (entry.comment || entry.title || entry.name) || '',
@@ -682,35 +795,96 @@ import SecurityCordon from '../components/SecurityCordon.astro';
           role: safeInt(ext.role !== undefined ? ext.role : entry && entry.role, 0),
           order: safeInt(entry && (entry.insertion_order !== undefined ? entry.insertion_order : entry.order), 100),
           prob: safeInt(ext.probability !== undefined ? ext.probability : entry && (entry.probability !== undefined ? entry.probability : entry.prob), 100),
-          enabled: entry && entry.enabled !== undefined ? !!entry.enabled : true,
+          enabled: entry && entry.enabled !== undefined ? !!entry.enabled : !disable,
+          disable: disable,
+          addMemo: entry && entry.addMemo !== undefined ? !!entry.addMemo : !!(entry && entry.add_memo),
+          ignoreBudget: entry && entry.ignoreBudget !== undefined ? !!entry.ignoreBudget : !!(entry && entry.ignore_budget),
           useRegex: entry && entry.use_regex !== undefined ? !!entry.use_regex : !!(entry && entry.useRegex),
           selectiveLogic: safeInt(ext.selectiveLogic !== undefined ? ext.selectiveLogic : entry && entry.selectiveLogic, 0),
           group: ext.group || (entry && entry.group) || '',
           groupWeight: safeInt(ext.group_weight !== undefined ? ext.group_weight : entry && entry.group_weight, 100),
           useProbability: ext.useProbability !== undefined ? !!ext.useProbability : true,
+          matchPersonaDescription: entry && entry.matchPersonaDescription !== undefined ? !!entry.matchPersonaDescription : !!(entry && entry.match_persona_description),
+          matchCharacterDescription: entry && entry.matchCharacterDescription !== undefined ? !!entry.matchCharacterDescription : !!(entry && entry.match_character_description),
+          matchCharacterPersonality: entry && entry.matchCharacterPersonality !== undefined ? !!entry.matchCharacterPersonality : !!(entry && entry.match_character_personality),
+          matchCharacterDepthPrompt: entry && entry.matchCharacterDepthPrompt !== undefined ? !!entry.matchCharacterDepthPrompt : !!(entry && entry.match_character_depth_prompt),
+          matchScenario: entry && entry.matchScenario !== undefined ? !!entry.matchScenario : !!(entry && entry.match_scenario),
+          matchCreatorNotes: entry && entry.matchCreatorNotes !== undefined ? !!entry.matchCreatorNotes : !!(entry && entry.match_creator_notes),
           excludeRecursion: ext.exclude_recursion !== undefined ? !!ext.exclude_recursion : !!(entry && entry.excludeRecursion),
           preventRecursion: ext.prevent_recursion !== undefined ? !!ext.prevent_recursion : !!(entry && entry.preventRecursion),
           delayUntilRecursion: ext.delay_until_recursion !== undefined ? !!ext.delay_until_recursion : !!(entry && entry.delayUntilRecursion),
           groupOverride: ext.group_override !== undefined ? !!ext.group_override : !!(entry && entry.groupOverride),
           vectorized: vectorized,
           outletName: ext.outlet_name || (entry && entry.outletName) || '',
+          matchWholeWords: ext.match_whole_words !== undefined ? !!ext.match_whole_words : (entry && entry.matchWholeWords !== undefined ? !!entry.matchWholeWords : null),
+          useGroupScoring: ext.use_group_scoring !== undefined ? !!ext.use_group_scoring : (entry && entry.useGroupScoring !== undefined ? !!entry.useGroupScoring : null),
+          automationId: ext.automation_id || (entry && entry.automationId) || '',
+          sticky: safeInt(entry && entry.sticky !== undefined ? entry.sticky : ext.sticky, 0),
+          cooldown: safeInt(entry && entry.cooldown !== undefined ? entry.cooldown : ext.cooldown, 0),
+          delay: safeInt(entry && entry.delay !== undefined ? entry.delay : ext.delay, 0),
+          triggers: Array.isArray(entry && entry.triggers) ? entry.triggers.slice() : [],
+          displayIndex: safeInt(entry && entry.displayIndex !== undefined ? entry.displayIndex : ext.display_index, index),
+          characterFilter: entry && entry.characterFilter ? entry.characterFilter : (ext.characterFilter || null),
           source: 'import'
         }, 'import');
       });
     }
 
-    function showWorldbookImportStatus(message, tone) {
-      if (!worldbookImportStatus) return;
+    function showImportStatus(message, tone) {
+      if (!importAssetStatus) return;
       var map = {
-        info: { color: '#6ee7b7', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.18)' },
+        info: { color: '#7dd3fc', bg: 'rgba(56,189,248,0.08)', border: 'rgba(56,189,248,0.18)' },
         ok: { color: '#34d399', bg: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.28)' },
         error: { color: '#fca5a5', bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.2)' }
       };
       var c = map[tone] || map.info;
-      worldbookImportStatus.style.color = c.color;
-      worldbookImportStatus.style.background = c.bg;
-      worldbookImportStatus.style.borderColor = c.border;
-      worldbookImportStatus.textContent = message;
+      importAssetStatus.style.color = c.color;
+      importAssetStatus.style.background = c.bg;
+      importAssetStatus.style.borderColor = c.border;
+      importAssetStatus.textContent = message;
+    }
+
+    function isCharacterCardPayload(json) {
+      if (!json || typeof json !== 'object') return false;
+      if (json.spec === 'chara_card_v3') return true;
+      if (json.data && typeof json.data === 'object') {
+        if (json.data.character_book || json.data.first_mes !== undefined || json.data.creator_notes !== undefined || json.data.mes_example !== undefined) {
+          return true;
+        }
+        if (json.data.nickname !== undefined || json.data.gender !== undefined || json.data.statusBlockConfig !== undefined) {
+          return true;
+        }
+      }
+      var root = json.data && typeof json.data === 'object' ? json.data : json;
+      return !!(
+        root &&
+        typeof root === 'object' &&
+        (
+          root.first_mes !== undefined ||
+          root.creator_notes !== undefined ||
+          root.mes_example !== undefined ||
+          root.alternate_greetings !== undefined ||
+          root.character_book !== undefined ||
+          root.nickname !== undefined ||
+          root.gender !== undefined ||
+          root.statusBlockConfig !== undefined ||
+          root.personality !== undefined ||
+          root.scenario !== undefined ||
+          root.creator !== undefined ||
+          root.character_version !== undefined
+        )
+      );
+    }
+
+    function commitImportedState(options) {
+      options = options || {};
+      if (options.resetEditor !== false) {
+        setWorldbookEditorMeta(-1);
+      }
+      updateWorldbookFilterUI();
+      renderEntriesList();
+      updatePreview();
+      saveCurrentDraft();
     }
 
     function applyImportedWorldbook(payload, fallbackName) {
@@ -720,21 +894,28 @@ import SecurityCordon from '../components/SecurityCordon.astro';
       }
 
       var importedName = getWorldbookImportName(payload, fallbackName);
+      var importedMeta = getImportedWorldbookMeta(payload);
       worldbookEntries = entries;
       if (importedName) {
         wbName.value = importedName;
+      }
+      if (!creatorNotes.value.trim() && importedMeta.worldbookDescription) {
+        creatorNotes.value = importedMeta.worldbookDescription;
       }
       editingIndex = -1;
       selectedWorldbookIndex = -1;
       worldbookBrowseFilter = 'all';
       resetWBForm();
+      window.__importedWorldbookMeta__ = importedMeta;
       updateWorldbookFilterUI();
       setWorldbookEditorMeta(-1);
       renderEntriesList();
       updatePreview();
       saveCurrentDraft();
-      window.dispatchEvent(new CustomEvent('worldbook-changed'));
-      showWorldbookImportStatus('已导入 ' + String(entries.length) + ' 条世界书', 'ok');
+      showImportStatus(
+        '已导入 ' + String(entries.length) + (Array.isArray(payload && payload.qrList) && payload.qrList.length ? ' 个快速回复按钮' : ' 条世界书'),
+        'ok'
+      );
     }
 
     function buildWorldbookMarkdown(entries) {
@@ -1123,13 +1304,6 @@ import SecurityCordon from '../components/SecurityCordon.astro';
       });
     });
 
-    if (btnExportWorldbookMd) {
-      btnExportWorldbookMd.addEventListener('click', function() {
-        if (!worldbookEntries.length) return alert('世界书为空，暂无可导出的词条。');
-        downloadWorldbookMarkdown();
-      });
-    }
-
     setPreviewCopyButtonsEnabled(false);
 
     bindPreviewCopyButton(btnCopyPreviewTitle, '标题已复制', function(entry) {
@@ -1228,72 +1402,70 @@ import SecurityCordon from '../components/SecurityCordon.astro';
     setWorldbookEditorMeta(-1);
 
 window.applyJSONFromEditor = function(json) {
-  if (!json || !json.data) return;
-  charName.value     = json.data.name || json.name || '';
-  wbName.value       = (json.data.extensions && json.data.extensions.world) || '';
-  charDesc.value     = json.data.description || '';
-  firstMes.value     = json.data.first_mes || '';
-  creatorNotes.value = json.data.creator_notes || '';
-  if (json.data.character_book && json.data.character_book.entries) {
-    worldbookEntries = json.data.character_book.entries.map(function(e) {
-      return normalizeWorldbookEntry({
-        comment:  e.comment || '',
-        content:  e.content || '',
-        keys:     e.keys || [],
-        secondaryKeys: Array.isArray(e.secondary_keys) ? e.secondary_keys : [],
-        strategy: e.constant ? 'constant' : (e.extensions && e.extensions.vectorized ? 'vectorized' : 'selective'),
-        position: (e.extensions && e.extensions.position !== undefined) ? e.extensions.position : 4,
-        depth:    (e.extensions && e.extensions.depth !== undefined) ? e.extensions.depth : 4,
-        role:     (e.extensions && e.extensions.role !== undefined) ? e.extensions.role : 0,
-        order:    e.insertion_order || 100,
-        prob:     (e.extensions && e.extensions.probability !== undefined) ? e.extensions.probability : 100,
-        enabled:  e.enabled !== undefined ? !!e.enabled : true,
-        useRegex: !!e.use_regex,
-        selectiveLogic: (e.extensions && e.extensions.selectiveLogic !== undefined) ? e.extensions.selectiveLogic : 0,
-        group: (e.extensions && e.extensions.group) || '',
-        groupWeight: (e.extensions && e.extensions.group_weight !== undefined) ? e.extensions.group_weight : 100,
-        useProbability: (e.extensions && e.extensions.useProbability !== undefined) ? !!e.extensions.useProbability : true,
-        excludeRecursion: (e.extensions && e.extensions.exclude_recursion) || false,
-        preventRecursion: (e.extensions && e.extensions.prevent_recursion) || false,
-        delayUntilRecursion: (e.extensions && e.extensions.delay_until_recursion) || false,
-        groupOverride: (e.extensions && e.extensions.group_override) || false,
-        vectorized: !!(e.extensions && e.extensions.vectorized),
-        outletName: (e.extensions && e.extensions.outlet_name) || '',
-        source:   e.source || 'import'
-      }, 'import');
-    });
-    selectedWorldbookIndex = -1;
-    worldbookBrowseFilter = 'all';
-    updateWorldbookFilterUI();
-    setWorldbookEditorMeta(-1);
-    renderEntriesList();
+  var card = normalizeImportedCharacterCard(json);
+  if (!card) return;
+
+  var root = getCardRootPayload(json) || {};
+  var importedCharacterBook = (root.character_book && typeof root.character_book === 'object')
+    ? root.character_book
+    : (json.data && json.data.character_book && typeof json.data.character_book === 'object'
+      ? json.data.character_book
+      : {});
+  window.__importedCardMeta__ = {
+    personality: String(card.personality || root.personality || '').trim(),
+    scenario: String(card.scenario || root.scenario || '').trim(),
+    mesExample: String(card.mesExample || root.mes_example || '').trim(),
+    tags: Array.isArray(card.tags) ? card.tags.slice() : (Array.isArray(root.tags) ? root.tags.slice() : []),
+    creator: String(card.creator || root.creator || '').trim(),
+    characterVersion: String(card.characterVersion || root.character_version || '').trim(),
+    nickname: String(card.nickname || root.nickname || '').trim(),
+    gender: String(card.gender || root.gender || '').trim(),
+    statusBlockConfig: card.statusBlockConfig && typeof card.statusBlockConfig === 'object'
+      ? card.statusBlockConfig
+      : (root.statusBlockConfig && typeof root.statusBlockConfig === 'object'
+        ? root.statusBlockConfig
+        : (json.statusBlockConfig && typeof json.statusBlockConfig === 'object' ? json.statusBlockConfig : { description: '', properties: {}, required: [] })),
+    characterBookDescription: String(importedCharacterBook.description || '').trim(),
+    characterBookScanDepth: importedCharacterBook.scan_depth !== undefined ? safeInt(importedCharacterBook.scan_depth, 3) : 3,
+    characterBookTokenBudget: importedCharacterBook.token_budget !== undefined ? safeInt(importedCharacterBook.token_budget, 1800000000) : 1800000000,
+    characterBookRecursiveScanning: importedCharacterBook.recursive_scanning !== undefined ? !!importedCharacterBook.recursive_scanning : true
+  };
+  window.__importedWorldbookMeta__ = null;
+
+  charName.value = card.charName;
+  wbName.value = card.wbName;
+  charDesc.value = card.charDesc;
+  firstMes.value = card.firstMes;
+  creatorNotes.value = card.creatorNotes;
+
+  worldbookEntries = card.worldbookEntries;
+  selectedWorldbookIndex = -1;
+  worldbookBrowseFilter = 'all';
+  updateWorldbookFilterUI();
+  setWorldbookEditorMeta(-1);
+  renderEntriesList();
+
+  regexScripts = card.regexScripts;
+  tavernHelperScripts = card.tavernHelperScripts;
+  window.__altGreetings__ = card.altGreetings;
+  if (window.__renderAltGreetings__) window.__renderAltGreetings__();
+
+  if (card.avatarBase64) {
+    window.__setImportedAvatar__(card.avatarBase64, true);
   }
-  if (json.data.extensions && json.data.extensions.regex_scripts) {
-    regexScripts = json.data.extensions.regex_scripts;
-  }
-  if (json.data.extensions && json.data.extensions.tavern_helper && json.data.extensions.tavern_helper.scripts) {
-    var ths = json.data.extensions.tavern_helper.scripts;
-    tavernHelperScripts = Array.isArray(ths) ? ths : [];
-  }
-  if (json.data.alternate_greetings && json.data.alternate_greetings.length > 0) {
-    window.__altGreetings__ = json.data.alternate_greetings;
-    if (window.__renderAltGreetings__) window.__renderAltGreetings__();
-  } else {
-    // ★ 导入的卡没有备选开场白时，清空旧数据
-    window.__altGreetings__ = [];
-    if (window.__renderAltGreetings__) window.__renderAltGreetings__();
-  }
-  saveCurrentDraft();
-  debouncedUpdateAndSave();
+
+  commitImportedState();
 };
 
 // ★ 导入卡片时恢复头像（给 PreviewPanel 的 PNG 导入调用）
-window.__setImportedAvatar__ = function(base64) {
+window.__setImportedAvatar__ = function(base64, skipCommit) {
   currentAvatarBase64 = base64;
   avatarImg.src = base64;
   avatarImg.style.display = 'block';
   avatarPlaceholder.style.display = 'none';
-  debouncedUpdateAndSave();
+  if (!skipCommit) {
+    commitImportedState({ resetEditor: false });
+  }
 };
 
     window.__getWorldbookEntries__ = function() {
@@ -1438,46 +1610,60 @@ window.__setImportedAvatar__ = function(base64) {
     }
 
     // ============================================================
-    //  头像
+    //  PNG 导出
     // ============================================================
-    charImageInput.addEventListener('change', function(e) {
-      var file = e.target.files[0]; if (!file) return;
-      var reader = new FileReader();
-      reader.onload = function(ev) {
-        var img = new Image();
-        img.onload = function() {
-          var cv = document.createElement('canvas');
-          cv.width = img.width; cv.height = img.height;
-          cv.getContext('2d').drawImage(img, 0, 0);
-          currentAvatarBase64 = cv.toDataURL('image/png');
-          avatarImg.src = currentAvatarBase64;
-          avatarImg.style.display = 'block';
-          avatarPlaceholder.style.display = 'none';
-          debouncedUpdateAndSave();
-        };
-        img.src = ev.target.result;
-      };
-      reader.readAsDataURL(file);
-    });
+    if (btnExportPNG) {
+      btnExportPNG.addEventListener('click', function() {
+        if (!currentAvatarBase64) return alert("❌ 请先上传头像！");
+        try {
+          var ch  = createTextChunk('chara', JSON.stringify(generateSillyTavernJSON()));
+          var raw = atob(currentAvatarBase64.split(',')[1]);
+          var bytes = new Uint8Array(raw.length);
+          for (var i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+          var io  = bytes.length - 12;
+          var bef = bytes.slice(0, io); var ie = bytes.slice(io);
+          var fin = new Uint8Array(bef.length + ch.length + ie.length);
+          fin.set(bef, 0); fin.set(ch, bef.length); fin.set(ie, bef.length + ch.length);
+          var blob = new Blob([fin], { type: 'image/png' });
+          var a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = (charName.value.trim() || 'CharacterCard') + '.png';
+          a.click(); URL.revokeObjectURL(a.href);
+        } catch(err) { alert("❌ 导出失败: " + err.message); }
+      });
+    }
 
-    btnExportPNG.addEventListener('click', function() {
-      if (!currentAvatarBase64) return alert("❌ 请先上传头像！");
-      try {
-        var ch  = createTextChunk('chara', JSON.stringify(generateFullJSON()));
-        var raw = atob(currentAvatarBase64.split(',')[1]);
-        var bytes = new Uint8Array(raw.length);
-        for (var i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
-        var io  = bytes.length - 12;
-        var bef = bytes.slice(0, io); var ie = bytes.slice(io);
-        var fin = new Uint8Array(bef.length + ch.length + ie.length);
-        fin.set(bef, 0); fin.set(ch, bef.length); fin.set(ie, bef.length + ch.length);
-        var blob = new Blob([fin], { type: 'image/png' });
-        var a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = (charName.value.trim() || 'CharacterCard') + '.png';
-        a.click(); URL.revokeObjectURL(a.href);
-      } catch(err) { alert("❌ 导出失败: " + err.message); }
-    });
+    function closeExportMenu() {
+      if (exportFormatMenu) exportFormatMenu.hidden = true;
+    }
+
+    function toggleExportMenu() {
+      if (!exportFormatMenu) return;
+      exportFormatMenu.hidden = !exportFormatMenu.hidden;
+    }
+
+    if (btnExportMenu && exportFormatMenu) {
+      btnExportMenu.addEventListener('click', function(e) {
+        e.stopPropagation();
+        toggleExportMenu();
+      });
+      exportFormatMenu.addEventListener('click', function(e) {
+        e.stopPropagation();
+      });
+      exportFormatMenu.querySelectorAll('[data-export-format]').forEach(function(item) {
+        item.addEventListener('click', function(e) {
+          var format = e.currentTarget.getAttribute('data-export-format');
+          closeExportMenu();
+          if (window.exportCardByFormat) {
+            window.exportCardByFormat(format);
+          }
+        });
+      });
+      document.addEventListener('click', closeExportMenu);
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeExportMenu();
+      });
+    }
 
     // ============================================================
     //  草稿系统
@@ -1520,6 +1706,8 @@ window.__setImportedAvatar__ = function(base64) {
       tavernHelperScripts = Array.isArray(d.tavernHelperScripts) ? d.tavernHelperScripts : [];
       currentAvatarBase64 = d.avatarBase64    || '';
       window.__altGreetings__ = d.altGreetings || [];
+      window.__importedCardMeta__ = d.importedCardMeta || null;
+      window.__importedWorldbookMeta__ = d.importedWorldbookMeta || null;
       if (window.__renderAltGreetings__) window.__renderAltGreetings__();
       // ★ 恢复状态栏数据
       if (d.statusBarData && window.__loadStatusBarData__) {
@@ -1531,6 +1719,8 @@ window.__setImportedAvatar__ = function(base64) {
       } else {
         avatarImg.style.display = 'none'; avatarPlaceholder.style.display = 'block';
       }
+      if (importAssetText) importAssetText.value = '';
+      showImportStatus('等待导入', 'info');
       updateDraftDropdown(); renderEntriesList(); updatePreview();
     }
 
@@ -1548,6 +1738,8 @@ window.__setImportedAvatar__ = function(base64) {
         tavernHelperScripts: tavernHelperScripts,
         avatarBase64:    currentAvatarBase64,
         altGreetings:    window.__altGreetings__ || [],
+        importedCardMeta: window.__importedCardMeta__ || null,
+        importedWorldbookMeta: window.__importedWorldbookMeta__ || null,
         statusBarData:   window.__getStatusBarData__ ? window.__getStatusBarData__() : null,  // ★ 保存状态栏
         updatedAt:       new Date().toLocaleTimeString('zh-CN', { hour12: false })
       };
@@ -1567,7 +1759,9 @@ window.__setImportedAvatar__ = function(base64) {
     btnNewDraft.addEventListener('click', function() {
       currentDraftId = genId();
       charName.value = ''; wbName.value = ''; charDesc.value = ''; firstMes.value = ''; creatorNotes.value = '';
-      worldbookEntries = []; regexScripts = []; tavernHelperScripts = []; currentAvatarBase64 = ''; charImageInput.value = '';
+      worldbookEntries = []; regexScripts = []; tavernHelperScripts = []; currentAvatarBase64 = '';
+      window.__importedCardMeta__ = null;
+      window.__importedWorldbookMeta__ = null;
       selectedWorldbookIndex = -1;
       worldbookBrowseFilter = 'all';
       updateWorldbookFilterUI();
@@ -1577,6 +1771,8 @@ window.__setImportedAvatar__ = function(base64) {
       if (window.__renderAltGreetings__) window.__renderAltGreetings__();
       // ★ 新建草稿时重置状态栏
       if (window.__loadStatusBarData__) window.__loadStatusBarData__(null);
+      if (importAssetText) importAssetText.value = '';
+      showImportStatus('等待导入', 'info');
       resetWBForm(); saveCurrentDraft(); updateDraftDropdown(); renderEntriesList(); updatePreview();
     });
 
@@ -1664,49 +1860,289 @@ window.__setImportedAvatar__ = function(base64) {
       reader.readAsText(file);
     });
 
-    function importWorldbookText(text, fallbackName) {
+    function readFileAsArrayBuffer(file) {
+      return new Promise(function(resolve, reject) {
+        var reader = new FileReader();
+        reader.onload = function(ev) { resolve(ev.target.result); };
+        reader.onerror = function() { reject(new Error('无法读取文件')); };
+        reader.readAsArrayBuffer(file);
+      });
+    }
+
+    function readFileAsDataURL(file) {
+      return new Promise(function(resolve, reject) {
+        var reader = new FileReader();
+        reader.onload = function(ev) { resolve(String(ev.target.result || '')); };
+        reader.onerror = function() { reject(new Error('无法读取文件')); };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function extractPNGCharaChunk(bytes) {
+      var i = 8;
+      while (i < bytes.length - 12) {
+        var length =
+          (bytes[i]   << 24 | bytes[i+1] << 16 |
+           bytes[i+2] <<  8 | bytes[i+3]) >>> 0;
+        var type = String.fromCharCode(
+          bytes[i+4], bytes[i+5], bytes[i+6], bytes[i+7]
+        );
+        if (type === 'tEXt') {
+          var dataStart = i + 8;
+          var dataEnd   = i + 8 + length;
+          var data      = bytes.slice(dataStart, dataEnd);
+          var nullPos = data.indexOf(0);
+          if (nullPos < 0) {
+            i += 12 + length;
+            continue;
+          }
+
+          var keyword = '';
+          for (var k = 0; k < nullPos; k++) {
+            keyword += String.fromCharCode(data[k]);
+          }
+
+          if (keyword === 'chara' || keyword === 'ccv3') {
+            var value = '';
+            for (var v = nullPos + 1; v < data.length; v++) {
+              value += String.fromCharCode(data[v]);
+            }
+            return value;
+          }
+        }
+        if (type === 'IEND') break;
+        i += 12 + length;
+      }
+      return null;
+    }
+
+    function importCardOrWorldbookText(text, fallbackName) {
       var payload = parseWorldbookImportJSON(text);
+      if (isCharacterCardPayload(payload)) {
+        applyJSONFromEditor(payload);
+        var card = normalizeImportedCharacterCard(payload);
+        showImportStatus('已导入角色卡「' + (card && card.charName ? card.charName : fallbackName || '未命名') + '」', 'ok');
+        return;
+      }
       applyImportedWorldbook(payload, fallbackName);
     }
 
-    if (worldbookImportStatus) {
-      showWorldbookImportStatus('等待导入', 'info');
-    }
-
-    if (btnWorldbookImportFile && worldbookImportInput) {
-      btnWorldbookImportFile.addEventListener('click', function() {
-        worldbookImportInput.value = '';
-        worldbookImportInput.click();
-      });
-    }
-
-    if (worldbookImportInput) {
-      worldbookImportInput.addEventListener('change', function(e) {
-        var file = e.target.files && e.target.files[0];
-        if (!file) return;
-        var reader = new FileReader();
-        reader.onload = function(ev) {
-          try {
-            importWorldbookText(String(ev.target.result || ''), file.name.replace(/\.[^.]+$/, '') || file.name);
-          } catch (err) {
-            showWorldbookImportStatus('导入失败：' + err.message, 'error');
-          }
-        };
-        reader.onerror = function() {
-          showWorldbookImportStatus('导入失败：无法读取文件', 'error');
-        };
-        reader.readAsText(file);
-      });
-    }
-
-    if (btnWorldbookImportText && worldbookImportText) {
-      btnWorldbookImportText.addEventListener('click', function() {
+    function importPngAsset(file, fallbackName) {
+      showImportStatus('⏳ 解析 PNG...', 'info');
+      Promise.all([readFileAsArrayBuffer(file), readFileAsDataURL(file)]).then(function(results) {
         try {
-          importWorldbookText(worldbookImportText.value || '', '粘贴导入世界书');
+          var bytes = new Uint8Array(results[0]);
+          var avatarBase64 = results[1];
+          var charaB64 = extractPNGCharaChunk(bytes);
+          if (!charaB64) {
+            window.__setImportedAvatar__(avatarBase64);
+            showImportStatus('✅ 已更新头像「' + (fallbackName || file.name) + '」', 'ok');
+            return;
+          }
+
+          var jsonStr = decodeURIComponent(escape(atob(charaB64)));
+          var payload = JSON.parse(jsonStr);
+          if (!isCharacterCardPayload(payload)) {
+            throw new Error('PNG 中的角色数据不是有效角色卡');
+          }
+
+          applyJSONFromEditor(payload);
+          window.__setImportedAvatar__(avatarBase64);
+          var card = normalizeImportedCharacterCard(payload);
+          showImportStatus(
+            '✅ 已导入角色卡「' + (card && card.charName ? card.charName : fallbackName || file.name) + '」并更新头像',
+            'ok'
+          );
         } catch (err) {
-          showWorldbookImportStatus('导入失败：' + err.message, 'error');
+          showImportStatus('❌ PNG 解析失败：' + err.message, 'error');
+        }
+      }).catch(function(err) {
+        showImportStatus('❌ PNG 解析失败：' + err.message, 'error');
+      });
+    }
+
+    function handleImportFile(file) {
+      if (!file) return;
+      var ext = (file.name.split('.').pop() || '').toLowerCase();
+      var fallbackName = file.name.replace(/\.[^.]+$/, '') || file.name;
+      if (ext === 'png') {
+        importPngAsset(file, fallbackName);
+        return;
+      }
+      if (ext === 'json') {
+        showImportStatus('⏳ 解析 JSON...', 'info');
+        file.text().then(function(text) {
+          try {
+            importCardOrWorldbookText(String(text || ''), fallbackName);
+          } catch (err) {
+            showImportStatus('❌ 导入失败：' + err.message, 'error');
+          }
+        }).catch(function(err) {
+          showImportStatus('❌ 导入失败：' + err.message, 'error');
+        });
+        return;
+      }
+      showImportStatus('❌ 不支持的文件格式，请选择 .json 或 .png', 'error');
+    }
+
+    if (importAssetStatus) {
+      showImportStatus('等待导入', 'info');
+    }
+
+    if (btnImportAssetFile && importAssetInput) {
+      btnImportAssetFile.addEventListener('click', function() {
+        importAssetInput.value = '';
+        importAssetInput.click();
+      });
+    }
+
+    if (importAssetInput) {
+      importAssetInput.addEventListener('change', function(e) {
+        var file = e.target.files && e.target.files[0];
+        handleImportFile(file);
+      });
+    }
+
+    if (btnImportAssetText && importAssetText) {
+      btnImportAssetText.addEventListener('click', function() {
+        try {
+          importCardOrWorldbookText(importAssetText.value || '', '粘贴导入');
+        } catch (err) {
+          showImportStatus('❌ 导入失败：' + err.message, 'error');
         }
       });
+    }
+
+    function getCardRootPayload(json) {
+      if (!json || typeof json !== 'object') return null;
+      if (json.data && typeof json.data === 'object') return json.data;
+      return json;
+    }
+
+    function normalizeImportedCharacterCard(json) {
+      if (!json || typeof json !== 'object') return null;
+
+      var root = getCardRootPayload(json);
+      if (!root) return null;
+
+      var hasCardFields = !!(
+        json.spec === 'chara_card_v3' ||
+        json.spec_version === '3.0' ||
+        root.first_mes !== undefined ||
+        root.creator_notes !== undefined ||
+        root.mes_example !== undefined ||
+        root.alternate_greetings !== undefined ||
+        root.nickname !== undefined ||
+        root.gender !== undefined ||
+        root.statusBlockConfig !== undefined ||
+        root.personality !== undefined ||
+        root.scenario !== undefined ||
+        root.creator !== undefined ||
+        root.character_version !== undefined ||
+        root.character_book !== undefined
+      );
+      if (!hasCardFields) return null;
+
+      function coerceImportedPosition(entry) {
+        if (!entry || typeof entry !== 'object') return 4;
+        if (entry.extensions && entry.extensions.position !== undefined) return safeInt(entry.extensions.position, 4);
+        if (entry.position !== undefined) {
+          if (entry.position === 'before_char') return 0;
+          if (entry.position === 'after_char') return 4;
+          return safeInt(entry.position, 4);
+        }
+        return 4;
+      }
+
+      function normalizeAvatarBase64(value) {
+        var str = String(value || '').trim();
+        if (!str || str.toLowerCase() === 'none') return '';
+        if (/^data:image\/[a-z0-9.+-]+;base64,/i.test(str)) return str;
+        return '';
+      }
+
+      var name = String(root.name || json.name || '').trim();
+      var desc = String(root.description || '').trim();
+      var personality = String(root.personality || json.personality || '').trim();
+      var scenario = String(root.scenario || json.scenario || '').trim();
+      var first = String(root.first_mes || '').trim();
+      var mesExample = String(root.mes_example || json.mes_example || '').trim();
+      var notes = String(root.creator_notes || root.creatorcomment || '').trim();
+      var wb = String((root.extensions && root.extensions.world) || root.character_book && root.character_book.name || json.wbName || '').trim();
+      var altGreetings = Array.isArray(root.alternate_greetings) ? root.alternate_greetings.slice() : [];
+      var tags = Array.isArray(root.tags) ? root.tags.slice() : (Array.isArray(json.tags) ? json.tags.slice() : []);
+      var creator = String(root.creator || json.creator || '').trim();
+      var characterVersion = String(root.character_version || json.character_version || '').trim();
+      var nickname = String(root.nickname || json.nickname || '').trim();
+      var gender = String(root.gender || json.gender || '').trim();
+      var statusBlockConfig = root.statusBlockConfig && typeof root.statusBlockConfig === 'object'
+        ? root.statusBlockConfig
+        : (json.statusBlockConfig && typeof json.statusBlockConfig === 'object'
+          ? json.statusBlockConfig
+          : { description: '', properties: {}, required: [] });
+      var regexScripts = [];
+      var tavernHelperScripts = [];
+      var avatarBase64 = normalizeAvatarBase64(json.avatar || root.avatar || '');
+
+      var characterBook = root.character_book || json.character_book || null;
+      var entries = [];
+      if (characterBook && Array.isArray(characterBook.entries)) {
+        entries = characterBook.entries.slice();
+        if (!wb && characterBook.name) wb = String(characterBook.name).trim();
+      } else if (characterBook && characterBook.entries && typeof characterBook.entries === 'object') {
+        entries = Object.keys(characterBook.entries).map(function(key) { return characterBook.entries[key]; });
+      }
+
+      return {
+        charName: name,
+        wbName: wb,
+        charDesc: desc,
+        personality: personality,
+        scenario: scenario,
+        firstMes: first,
+        mesExample: mesExample,
+        creatorNotes: notes,
+        tags: tags,
+        creator: creator,
+        characterVersion: characterVersion,
+        nickname: nickname,
+        gender: gender,
+        statusBlockConfig: statusBlockConfig,
+        worldbookEntries: entries.map(function(e) {
+          return normalizeWorldbookEntry({
+            comment: e && (e.comment || e.title || e.name) || '',
+            content: e && e.content || '',
+            keys: Array.isArray(e && e.keys) ? e.keys.slice() : [],
+            secondaryKeys: Array.isArray(e && e.secondary_keys) ? e.secondary_keys.slice() : [],
+            strategy: e && e.constant ? 'constant' : (e && e.vectorized ? 'vectorized' : (e && e.extensions && e.extensions.vectorized ? 'vectorized' : 'selective')),
+            position: coerceImportedPosition(e),
+            depth: (e && e.extensions && e.extensions.depth !== undefined) ? e.extensions.depth : 4,
+            role: (e && e.extensions && e.extensions.role !== undefined) ? e.extensions.role : 0,
+            order: e && e.insertion_order !== undefined ? e.insertion_order : (e && e.order !== undefined ? e.order : 100),
+            prob: (e && e.extensions && e.extensions.probability !== undefined) ? e.extensions.probability : (e && e.priority !== undefined ? e.priority : 100),
+            enabled: e && e.enabled !== undefined ? !!e.enabled : true,
+            useRegex: !!(e && (e.use_regex || e.useRegex)),
+            caseSensitive: !!(e && (e.case_sensitive || e.caseSensitive)),
+            selectiveLogic: (e && e.extensions && e.extensions.selectiveLogic !== undefined) ? e.extensions.selectiveLogic : 0,
+            group: (e && e.extensions && e.extensions.group) || '',
+            groupWeight: (e && e.extensions && e.extensions.group_weight !== undefined) ? e.extensions.group_weight : 100,
+            useProbability: (e && e.extensions && e.extensions.useProbability !== undefined) ? !!e.extensions.useProbability : true,
+            excludeRecursion: !!(e && e.extensions && e.extensions.exclude_recursion),
+            preventRecursion: !!(e && e.extensions && e.extensions.prevent_recursion),
+            delayUntilRecursion: !!(e && e.extensions && e.extensions.delay_until_recursion),
+            groupOverride: !!(e && e.extensions && e.extensions.group_override),
+            vectorized: !!(e && e.extensions && e.extensions.vectorized),
+            outletName: (e && e.extensions && e.extensions.outlet_name) || '',
+            source: e && e.source || 'import'
+          }, 'import');
+        }),
+        regexScripts: Array.isArray(root.extensions && root.extensions.regex_scripts) ? root.extensions.regex_scripts.slice() : regexScripts,
+        tavernHelperScripts: Array.isArray(root.extensions && root.extensions.tavern_helper && root.extensions.tavern_helper.scripts)
+          ? root.extensions.tavern_helper.scripts.slice()
+          : tavernHelperScripts,
+        altGreetings: altGreetings,
+        avatarBase64: avatarBase64
+      };
     }
 
     // ============================================================
@@ -2077,6 +2513,7 @@ window.__setImportedAvatar__ = function(base64) {
       if (worldbookMode === 'preview') {
         if (entriesList) entriesList.hidden = true;
         renderWorldbookPreview();
+        window.dispatchEvent(new CustomEvent('worldbook-changed'));
         return;
       }
       if (entriesList) entriesList.hidden = false;
@@ -2355,56 +2792,202 @@ window.__setImportedAvatar__ = function(base64) {
     // ============================================================
     //  JSON 生成
     // ============================================================
-    function generateFullJSON() {
-      var fe = worldbookEntries.map(function(e, i) {
+    function buildExportWorldbookEntries() {
+      return worldbookEntries.map(function(e, i) {
+        var keys = Array.isArray(e.keys) ? e.keys.slice() : [];
+        var secondaryKeys = Array.isArray(e.secondaryKeys) ? e.secondaryKeys.slice() : [];
+        var comment = String(e.comment || '');
+        var content = String(e.content || '');
+        var isConstant = e.strategy === 'constant';
+        var isSelective = isConstant ? false : (keys.length > 0 || e.strategy === 'selective' || e.strategy === 'vectorized' || !!e.vectorized);
+        var enabled = e.disable !== true && e.enabled !== false;
+        var ext = {
+          position: safeInt(e.position, 4),
+          exclude_recursion: !!e.excludeRecursion,
+          display_index: safeInt(e.displayIndex, i),
+          probability: safeInt(e.prob, 100),
+          useProbability: e.useProbability !== false,
+          depth: safeInt(e.depth, 4),
+          selectiveLogic: safeInt(e.selectiveLogic, 0),
+          group: e.group || '',
+          group_override: !!e.groupOverride,
+          group_weight: safeInt(e.groupWeight, 100),
+          prevent_recursion: !!e.preventRecursion,
+          delay_until_recursion: !!e.delayUntilRecursion,
+          scan_depth: null,
+          match_whole_words: e.matchWholeWords !== undefined ? !!e.matchWholeWords : null,
+          use_group_scoring: e.useGroupScoring !== undefined ? !!e.useGroupScoring : null,
+          case_sensitive: e.caseSensitive !== undefined ? !!e.caseSensitive : null,
+          automation_id: e.automationId || '',
+          role: safeInt(e.role, 0),
+          vectorized: !!e.vectorized,
+          sticky: safeInt(e.sticky, 0),
+          cooldown: safeInt(e.cooldown, 0),
+          delay: safeInt(e.delay, 0)
+        };
+        if (e.outletName) ext.outlet_name = e.outletName;
+
         return {
-          id: i,
-          keys: e.keys || [],
-          secondary_keys: e.secondaryKeys || [],
-          comment: e.comment,
-          content: e.content,
-          constant: e.strategy === 'constant',
-          selective: e.strategy === 'selective' || e.strategy === 'vectorized',
+          uid: i,
+          keys: keys,
+          secondary_keys: secondaryKeys,
+          comment: comment,
+          content: content,
+          constant: isConstant,
+          vectorized: !!e.vectorized,
+          selective: isSelective,
+          selectiveLogic: safeInt(e.selectiveLogic, 0),
+          addMemo: !!e.addMemo,
+          order: safeInt(e.order, 100),
+          position: safeInt(e.position, 4),
+          disable: !enabled,
+          ignoreBudget: !!e.ignoreBudget,
+          matchPersonaDescription: !!e.matchPersonaDescription,
+          matchCharacterDescription: !!e.matchCharacterDescription,
+          matchCharacterPersonality: !!e.matchCharacterPersonality,
+          matchCharacterDepthPrompt: !!e.matchCharacterDepthPrompt,
+          matchScenario: !!e.matchScenario,
+          matchCreatorNotes: !!e.matchCreatorNotes,
+          delayUntilRecursion: !!e.delayUntilRecursion,
+          probability: safeInt(e.prob, 100),
+          useProbability: e.useProbability !== false,
+          depth: safeInt(e.depth, 4),
+          outletName: e.outletName || '',
+          group: e.group || '',
+          groupOverride: !!e.groupOverride,
+          groupWeight: safeInt(e.groupWeight, 100),
+          scanDepth: null,
+          caseSensitive: e.caseSensitive !== undefined ? !!e.caseSensitive : null,
+          matchWholeWords: e.matchWholeWords !== undefined ? !!e.matchWholeWords : null,
+          useGroupScoring: e.useGroupScoring !== undefined ? !!e.useGroupScoring : null,
+          automationId: e.automationId || '',
+          role: safeInt(e.role, 0),
+          sticky: safeInt(e.sticky, 0),
+          cooldown: safeInt(e.cooldown, 0),
+          delay: safeInt(e.delay, 0),
+          triggers: Array.isArray(e.triggers) ? e.triggers.slice() : [],
+          displayIndex: safeInt(e.displayIndex, i),
           insertion_order: safeInt(e.order, 100),
-          enabled: e.enabled !== false,
-          position: "before_char",
-          use_regex: !!e.useRegex,
-          extensions: {
-            position: safeInt(e.position, 4),
-            exclude_recursion: !!e.excludeRecursion,
-            display_index: i,
-            probability: safeInt(e.prob, 100),
-            useProbability: e.useProbability !== false,
-            depth: safeInt(e.depth, 4),
-            selectiveLogic: safeInt(e.selectiveLogic, 0),
-            outlet_name: e.outletName || "",
-            group: e.group || "",
-            group_override: !!e.groupOverride,
-            group_weight: safeInt(e.groupWeight, 100),
-            prevent_recursion: !!e.preventRecursion,
-            delay_until_recursion: !!e.delayUntilRecursion,
-            role: safeInt(e.role, 0),
-            vectorized: e.strategy === 'vectorized' || !!e.vectorized
-          }
+          case_sensitive: e.caseSensitive !== undefined ? !!e.caseSensitive : false,
+          name: comment,
+          priority: safeInt(e.prob, 100),
+          id: i,
+          enabled: enabled,
+          extensions: ext
         };
       });
-      var cn  = charName.value.trim() || "无名角色";
-      var wn  = wbName.value.trim()   || "无名世界书";
-      var ext = { world: wn };
-      if (statusBarActive && regexScripts && regexScripts.length > 0) ext.regex_scripts = regexScripts;
-      // ★ 酒馆助手脚本（ScriptTree[] 格式，直接输出原始数组）
-      if (tavernHelperScripts.length > 0) {
-        ext.tavern_helper = { scripts: tavernHelperScripts, variables: {} };
+    }
+
+    function buildExportCharacterBook() {
+      var meta = {};
+      if (window.__importedWorldbookMeta__) {
+        Object.keys(window.__importedWorldbookMeta__).forEach(function(key) {
+          meta[key] = window.__importedWorldbookMeta__[key];
+        });
       }
+      if (window.__importedCardMeta__) {
+        Object.keys(window.__importedCardMeta__).forEach(function(key) {
+          meta[key] = window.__importedCardMeta__[key];
+        });
+      }
+      return {
+        name: wbName.value.trim() || '',
+        description: meta.characterBookDescription || meta.worldbookDescription || '',
+        scan_depth: meta.characterBookScanDepth !== undefined ? meta.characterBookScanDepth : (meta.worldbookScanDepth !== undefined ? meta.worldbookScanDepth : 3),
+        token_budget: meta.characterBookTokenBudget !== undefined ? meta.characterBookTokenBudget : (meta.worldbookTokenBudget !== undefined ? meta.worldbookTokenBudget : 1800000000),
+        recursive_scanning: meta.characterBookRecursiveScanning !== undefined ? !!meta.characterBookRecursiveScanning : (meta.worldbookRecursiveScanning !== undefined ? !!meta.worldbookRecursiveScanning : true),
+        extensions: {},
+        entries: buildExportWorldbookEntries()
+      };
+    }
+
+    function generateSillyTavernJSON() {
+      var cn = charName.value.trim() || '';
       var altG = (window.__altGreetings__ || []).filter(function(g) { return g && g.trim(); });
-      return { name: cn, description: charDesc.value, personality: "", scenario: "", first_mes: firstMes.value, mes_example: "", creatorcomment: creatorNotes.value, avatar: "none", talkativeness: "0.5", fav: false, tags: [], spec: "chara_card_v3", spec_version: "3.0", data: { name: cn, description: charDesc.value, personality: "", scenario: "", first_mes: firstMes.value, mes_example: "", creator_notes: creatorNotes.value, system_prompt: "", post_history_instructions: "", tags: [], creator: "", character_version: "1.0", alternate_greetings: altG, extensions: ext, character_book: { name: wn, entries: fe } } };
+      var meta = {};
+      if (window.__importedWorldbookMeta__) {
+        Object.keys(window.__importedWorldbookMeta__).forEach(function(key) {
+          meta[key] = window.__importedWorldbookMeta__[key];
+        });
+      }
+      if (window.__importedCardMeta__) {
+        Object.keys(window.__importedCardMeta__).forEach(function(key) {
+          meta[key] = window.__importedCardMeta__[key];
+        });
+      }
+      var tags = Array.isArray(meta.tags) ? meta.tags.slice() : [];
+      return {
+        spec: 'chara_card_v3',
+        spec_version: '3.0',
+        data: {
+          name: cn,
+          description: charDesc.value || '',
+          personality: meta.personality || '',
+          scenario: meta.scenario || '',
+          first_mes: firstMes.value || '',
+          mes_example: meta.mesExample || '',
+          creator_notes: creatorNotes.value || '',
+          alternate_greetings: altG,
+          character_book: buildExportCharacterBook(),
+          tags: tags,
+          creator: meta.creator || '',
+          character_version: meta.characterVersion || '1.0.0',
+          nickname: meta.nickname || cn || ''
+        }
+      };
+    }
+
+    function generateVanillaCharacterJSON() {
+      var cn = charName.value.trim() || '';
+      var altG = (window.__altGreetings__ || []).filter(function(g) { return g && g.trim(); });
+      var meta = {};
+      if (window.__importedWorldbookMeta__) {
+        Object.keys(window.__importedWorldbookMeta__).forEach(function(key) {
+          meta[key] = window.__importedWorldbookMeta__[key];
+        });
+      }
+      if (window.__importedCardMeta__) {
+        Object.keys(window.__importedCardMeta__).forEach(function(key) {
+          meta[key] = window.__importedCardMeta__[key];
+        });
+      }
+      var tags = Array.isArray(meta.tags) ? meta.tags.slice() : [];
+      return {
+        name: cn,
+        description: charDesc.value || '',
+        personality: meta.personality || '',
+        scenario: meta.scenario || '',
+        first_mes: firstMes.value || '',
+        mes_example: meta.mesExample || '',
+        creator_notes: creatorNotes.value || '',
+        alternate_greetings: altG,
+        character_book: buildExportCharacterBook(),
+        tags: tags,
+        creator: meta.creator || '',
+        character_version: meta.characterVersion || '1.0.0',
+        nickname: meta.nickname || cn || '',
+        gender: meta.gender || 'N/A',
+        statusBlockConfig: meta.statusBlockConfig || {
+          description: '',
+          properties: {},
+          required: []
+        }
+      };
+    }
+
+    function downloadJsonFile(payload, filename) {
+      var j = JSON.stringify(payload, null, 2);
+      var a = document.createElement('a');
+      a.href = 'data:text/json;charset=utf-8,' + encodeURIComponent(j);
+      a.download = filename;
+      a.click();
     }
 
     // ============================================================
     //  预览 & 联动 & 初始化
     // ============================================================
     function updatePreview() {
-      var fj = generateFullJSON();
+      var fj = generateSillyTavernJSON();
       if (window.updatePreviewPanel) window.updatePreviewPanel(fj);
     }
 
@@ -2412,13 +2995,24 @@ window.__setImportedAvatar__ = function(base64) {
       el.addEventListener('input', debouncedUpdateAndSave);
     });
 
-    btnDownloadJson.addEventListener('click', function() {
-      var j = JSON.stringify(generateFullJSON(), null, 2);
-      var a = document.createElement('a');
-      a.href = "data:text/json;charset=utf-8," + encodeURIComponent(j);
-      a.download = (charName.value || "card") + ".json";
-      a.click();
-    });
+    window.generateSillyTavernJSON = generateSillyTavernJSON;
+    window.generateVanillaCharacterJSON = generateVanillaCharacterJSON;
+    window.downloadWorldbookMarkdown = downloadWorldbookMarkdown;
+    window.exportCardByFormat = function(format) {
+      if (format === 'vanilla') {
+        downloadJsonFile(generateVanillaCharacterJSON(), (charName.value || 'card') + '.json');
+        return;
+      }
+      if (format === 'st') {
+        downloadJsonFile(generateSillyTavernJSON(), (charName.value || 'card') + '.json');
+        return;
+      }
+      if (format === 'worldbook-md') {
+        if (!worldbookEntries.length) return alert('世界书为空，暂无可导出的词条。');
+        downloadWorldbookMarkdown();
+        return;
+      }
+    };
 
     // ★ 初始化顺序很重要：先加载 AI 配置（含预设），再加载草稿
     loadAIConfig();
