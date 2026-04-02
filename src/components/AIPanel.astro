@@ -118,6 +118,30 @@
     </div>
   </div>
 
+  <hr class="divider" />
+
+  <!-- 世界书导入 -->
+  <div class="worldbook-import">
+    <div class="worldbook-import-head">
+      <div>
+        <label style="color: #6ee7b7; margin-bottom: 8px; display: block; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">📖 导入世界书</label>
+        <p class="worldbook-import-tip">支持酒馆世界书 JSON、角色卡内嵌 character_book，或直接粘贴 JSON。导入会覆盖当前世界书条目。</p>
+      </div>
+      <span id="worldbookImportStatus" class="worldbook-import-status">等待导入</span>
+    </div>
+
+    <div class="worldbook-import-actions">
+      <input type="file" id="worldbookImportInput" accept=".json,application/json" />
+      <button id="btnWorldbookImportFile" class="btn btn-fetch" type="button" style="margin:0;">选择文件导入</button>
+      <button id="btnWorldbookImportText" class="btn btn-fetch" type="button" style="margin:0;">粘贴内容导入</button>
+    </div>
+
+    <div class="form-group" style="margin-bottom:0;">
+      <label>世界书 JSON / 角色卡 JSON</label>
+      <textarea id="worldbookImportText" class="worldbook-import-textarea" placeholder="把世界书 JSON 或完整角色卡 JSON 贴在这里，然后点击「粘贴内容导入」"></textarea>
+    </div>
+  </div>
+
   <!-- 生成提示词 -->
   <div class="form-group">
     <label style="color: #38bdf8;">📝 [阶段1] 角色设定提示词</label>
@@ -220,6 +244,61 @@
     border-color: #10b981;
     color: #ecfdf5;
     box-shadow: 0 0 8px rgba(16, 185, 129, 0.3);
+  }
+
+  /* ── 世界书导入 ── */
+  .worldbook-import {
+    margin-bottom: 16px;
+    padding: 14px;
+    border: 1px solid rgba(110, 231, 183, 0.16);
+    border-radius: 12px;
+    background: rgba(16, 185, 129, 0.04);
+  }
+  .worldbook-import-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .worldbook-import-tip {
+    margin: 0;
+    color: #64748b;
+    font-size: 0.7rem;
+    line-height: 1.55;
+    max-width: 54ch;
+  }
+  .worldbook-import-status {
+    flex-shrink: 0;
+    font-size: 0.64rem;
+    font-weight: 700;
+    color: #6ee7b7;
+    background: rgba(16, 185, 129, 0.08);
+    border: 1px solid rgba(16, 185, 129, 0.18);
+    border-radius: 999px;
+    padding: 4px 10px;
+    white-space: nowrap;
+  }
+  .worldbook-import-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  #worldbookImportInput {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .worldbook-import-textarea {
+    min-height: 120px;
+    resize: vertical;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    line-height: 1.6;
   }
 
   /* ── 搜索配置块 ── */
@@ -332,9 +411,7 @@
     font-size: 0.95rem;
     font-weight: 700;
     color: #c4b5fd;
-    text-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
     text-align: center;
-    animation: hackerGlow 1.5s ease-in-out infinite;
   }
   #hackerProgress {
     width: 80%;
@@ -362,24 +439,6 @@
     text-align: center;
     font-family: 'JetBrains Mono', monospace;
     min-height: 1.2em;
-  }
-  @keyframes hackerGlow {
-    0%, 100% { text-shadow: 0 0 20px rgba(139, 92, 246, 0.5); }
-    50%       { text-shadow: 0 0 40px rgba(139, 92, 246, 0.8), 0 0 80px rgba(139, 92, 246, 0.3); }
-  }
-  #hackerOverlay::after {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.5), transparent);
-    animation: hackerScan 2s linear infinite;
-    pointer-events: none;
-    z-index: 3;
-  }
-  @keyframes hackerScan {
-    0%   { top: 0;    opacity: 1;   }
-    100% { top: 100%; opacity: 0.2; }
   }
 </style>
 
@@ -880,35 +939,13 @@
 
   function startHackerAnim() {
     hackerOverlay.style.display = 'block';
-    hackerStreamText = '';
-    hackerCanvas.textContent = '';
-    for (var i = 0; i < 800; i++) {
-      hackerStreamText += hackerChars[Math.floor(Math.random() * hackerChars.length)];
-      if (Math.random() < 0.08) hackerStreamText += '\n';
-    }
+    if (hackerAnimId) { cancelAnimationFrame(hackerAnimId); hackerAnimId = null; }
+    hackerStreamText = [
+      '任务状态：静态模式',
+      '说明：已关闭装饰性滚动动画，',
+      '仅保留阶段、进度和结果提示。'
+    ].join('\n');
     hackerCanvas.textContent = hackerStreamText;
-    var frameCount = 0;
-    function tick() {
-      frameCount++;
-      if (frameCount % 2 === 0) {
-        var arr     = hackerStreamText.split('');
-        var changes = 15 + Math.floor(Math.random() * 25);
-        for (var c = 0; c < changes; c++) {
-          var pos = Math.floor(Math.random() * arr.length);
-          if (arr[pos] !== '\n') arr[pos] = hackerChars[Math.floor(Math.random() * hackerChars.length)];
-        }
-        var newLine = '';
-        for (var n = 0; n < 20; n++) newLine += hackerChars[Math.floor(Math.random() * hackerChars.length)];
-        arr.push('\n');
-        for (var nn = 0; nn < newLine.length; nn++) arr.push(newLine[nn]);
-        if (arr.length > 1200) arr.splice(0, arr.length - 1200);
-        hackerStreamText         = arr.join('');
-        hackerCanvas.textContent = hackerStreamText;
-        hackerCanvas.scrollTop   = hackerCanvas.scrollHeight;
-      }
-      hackerAnimId = requestAnimationFrame(tick);
-    }
-    hackerAnimId = requestAnimationFrame(tick);
   }
 
   function stopHackerAnim()    { if (hackerAnimId) { cancelAnimationFrame(hackerAnimId); hackerAnimId = null; } }

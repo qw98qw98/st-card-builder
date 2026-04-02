@@ -1,46 +1,54 @@
 ---
 ---
-<div class="panel wb-auditor area-auditor">
-  <h2>🔍 世界书内容监测</h2>
-
-  <!-- 控制栏：只显示 AI 审计按钮 -->
-  <button id="btnRunAudit" class="btn btn-audit-run" style="width: 100%; margin-bottom: 10px;">🧠 AI 深度审计</button>
-
-  <!-- AI 审计状态 -->
-  <div id="auditStatus" class="audit-status"></div>
-
-  <!-- 快速自检结果 -->
-  <div id="quickCheckResult" class="audit-section" style="display: none;"></div>
-
-  <!-- AI 审计报告 -->
-  <div id="auditReport" class="audit-section" style="display: none;">
-    <!-- 总评分 -->
-    <div id="auditScoreCard" class="audit-score-card">
-      <div class="audit-score-ring">
-        <svg viewBox="0 0 100 100">
-          <circle class="score-bg" cx="50" cy="50" r="42" />
-          <circle class="score-fill" id="scoreCircle" cx="50" cy="50" r="42" />
-        </svg>
-        <div class="score-number" id="scoreNumber">0</div>
-      </div>
-      <div class="audit-score-info">
-        <div class="score-grade" id="scoreGrade">--</div>
-        <div class="score-summary" id="scoreSummary">等待审计...</div>
-      </div>
+<details class="panel wb-auditor area-auditor">
+  <summary class="wb-auditor-summary">
+    <div>
+      <h2>🔍 世界书内容检测</h2>
+      <p class="auditor-desc">折叠的辅助审计，只在需要时展开，不占主工作区。</p>
     </div>
+    <span class="wb-auditor-badge">二级</span>
+  </summary>
 
-    <!-- 维度分析 -->
-    <div id="auditDimensions" class="audit-dimensions"></div>
+  <div class="wb-auditor-body">
+    <!-- 控制栏：只显示 AI 审计按钮 -->
+    <button id="btnRunAudit" class="btn btn-audit-run" style="width:100%;margin-bottom:10px;">🧠 AI 深度审计</button>
 
-    <!-- 详细问题列表 -->
-    <div id="auditIssues" class="audit-issues"></div>
+    <!-- AI 审计状态 -->
+    <div id="auditStatus" class="audit-status"></div>
 
-    <!-- AI 建议 -->
-    <div id="auditSuggestions" class="audit-suggestions"></div>
+    <!-- 快速自检结果 -->
+    <div id="quickCheckResult" class="audit-section" style="display:none;"></div>
+
+    <!-- AI 审计报告 -->
+    <div id="auditReport" class="audit-section" style="display:none;">
+      <!-- 总评分 -->
+      <div id="auditScoreCard" class="audit-score-card">
+        <div class="audit-score-ring">
+          <svg viewBox="0 0 100 100">
+            <circle class="score-bg" cx="50" cy="50" r="42" />
+            <circle class="score-fill" id="scoreCircle" cx="50" cy="50" r="42" />
+          </svg>
+          <div class="score-number" id="scoreNumber">0</div>
+        </div>
+        <div class="audit-score-info">
+          <div class="score-grade" id="scoreGrade">--</div>
+          <div class="score-summary" id="scoreSummary">等待审计...</div>
+        </div>
+      </div>
+
+      <!-- 维度分析 -->
+      <div id="auditDimensions" class="audit-dimensions"></div>
+
+      <!-- 详细问题列表 -->
+      <div id="auditIssues" class="audit-issues"></div>
+
+      <!-- AI 建议 -->
+      <div id="auditSuggestions" class="audit-suggestions"></div>
+    </div>
   </div>
-</div>
+</details>
 
-<style>
+<style is:global>
   .wb-auditor {
     display: flex;
     flex-direction: column;
@@ -462,6 +470,105 @@
     margin-top: 6px;
     text-transform: uppercase;
     letter-spacing: 0.06em;
+  }
+
+  .wb-auditor {
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    background: var(--surface-strong);
+    overflow: hidden;
+    min-height: 0 !important;
+    display: block;
+  }
+
+  .wb-auditor > summary {
+    list-style: none;
+  }
+
+  .wb-auditor > summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .wb-auditor-summary {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 18px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .wb-auditor-summary h2 {
+    margin: 0;
+    font-size: 0.98rem;
+    color: var(--text);
+    border: none;
+    padding: 0;
+  }
+
+  .wb-auditor-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--muted);
+    font-size: 0.68rem;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .wb-auditor-body {
+    padding: 16px 18px 18px;
+  }
+
+  .wb-auditor .audit-section {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+  }
+
+  .wb-auditor .btn-audit-run {
+    background: var(--accent) !important;
+    border: none !important;
+    color: #fff !important;
+    box-shadow: none !important;
+  }
+
+  .wb-auditor .audit-score-card,
+  .wb-auditor .dim-card,
+  .wb-auditor .issue-item,
+  .wb-auditor .suggestion-item {
+    background: var(--surface-2) !important;
+    border-color: var(--border) !important;
+    box-shadow: none !important;
+  }
+
+  .wb-auditor .audit-status,
+  .wb-auditor .score-summary,
+  .wb-auditor .dim-detail,
+  .wb-auditor .issue-desc,
+  .wb-auditor .suggestion-item {
+    color: var(--muted) !important;
+  }
+
+  .wb-auditor .score-grade,
+  .wb-auditor .dim-name,
+  .wb-auditor .issue-title,
+  .wb-auditor .suggestions-title,
+  .wb-auditor .audit-issues-title {
+    color: var(--text) !important;
+  }
+
+  .wb-auditor .qc-suggestion-item,
+  .wb-auditor .qc-dim-tag,
+  .wb-auditor .issue-item.tip {
+    background: var(--surface-2) !important;
+    color: var(--text) !important;
+    border-color: var(--border) !important;
   }
 </style>
 

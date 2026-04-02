@@ -32,7 +32,7 @@
   </div>
 </div>
 
-<script is:inline>
+<script>
 (function() {
   var styleId = 'preview-panel-styles';
   if (!document.getElementById(styleId)) {
@@ -608,7 +608,7 @@
     input.type      = 'text';
     input.className = 'inline-edit-input';
     input.value     = displayValue;
-    input.style.width = Math.max(40, measureTextWidth(displayValue) + 16) + 'px';
+    input.style.width = clampInputWidth(measureTextWidth(displayValue)) + 'px';
     el.innerHTML = '';
     el.appendChild(input);
     el.style.background = 'none';
@@ -616,7 +616,7 @@
     input.focus();
     input.select();
     input.addEventListener('input', function() {
-      input.style.width = Math.max(40, measureTextWidth(input.value) + 16) + 'px';
+      input.style.width = clampInputWidth(measureTextWidth(input.value)) + 'px';
     });
     var committed = false;
     function commit() {
@@ -643,12 +643,54 @@
   // ============================================================
   //  工具函数
   // ============================================================
+  var MEASURE_FONT = '0.82rem "JetBrains Mono", "Fira Code", "Courier New", monospace';
+  var MEASURE_MAX_INPUT_WIDTH = 420;
+  var measureWidthCache = new Map();
   var measureCanvas = null;
+  var measureContext = null;
+
+  function clampInputWidth(width) {
+    return Math.min(MEASURE_MAX_INPUT_WIDTH, Math.max(40, Math.ceil(width + 16)));
+  }
+
+  function getMeasureContext() {
+    if (measureContext) return measureContext;
+    if (typeof document === 'undefined') return null;
+    measureCanvas = document.createElement('canvas');
+    measureContext = measureCanvas.getContext('2d');
+    return measureContext;
+  }
+
   function measureTextWidth(text) {
-    if (!measureCanvas) measureCanvas = document.createElement('canvas');
-    var ctx = measureCanvas.getContext('2d');
-    ctx.font = '0.82rem "JetBrains Mono", "Fira Code", "Courier New", monospace';
-    return ctx.measureText(text).width;
+    if (!text) return 0;
+    var cacheKey = String(text);
+    if (measureWidthCache.has(cacheKey)) {
+      return measureWidthCache.get(cacheKey);
+    }
+
+    var lines = cacheKey.split(/\r\n|\r|\n/);
+    var ctx = getMeasureContext();
+    var maxWidth = 0;
+
+    if (ctx) {
+      ctx.font = MEASURE_FONT;
+      for (var i = 0; i < lines.length; i++) {
+        var width = ctx.measureText(lines[i]).width;
+        if (width > maxWidth) maxWidth = width;
+      }
+    } else {
+      for (var j = 0; j < lines.length; j++) {
+        var fallbackWidth = lines[j].length * 8;
+        if (fallbackWidth > maxWidth) maxWidth = fallbackWidth;
+      }
+    }
+
+    measureWidthCache.set(cacheKey, maxWidth);
+    if (measureWidthCache.size > 200) {
+      measureWidthCache.clear();
+      measureWidthCache.set(cacheKey, maxWidth);
+    }
+    return maxWidth;
   }
   function getValueByPath(obj, path) {
     var parts = path.split('.'); var cur = obj;

@@ -9,12 +9,9 @@ import ChatPlayground from '../components/ChatPlayground.astro';
 import WorldbookAuditor from '../components/WorldbookAuditor.astro';
 import VariableCardPanel from '../components/VariableCardPanel.astro';
 import SecurityCordon from '../components/SecurityCordon.astro';
-import ParticleCanvas from '../components/ParticleCanvas.astro';
-import GsapAnimations from '../components/GsapAnimations.astro';
 ---
 
 <Layout title="SillyTavern V3 卡片构建器">
-  <ParticleCanvas />
   <div class="app-header">
     <div class="app-brand">
       <span class="app-logo">
@@ -46,25 +43,115 @@ import GsapAnimations from '../components/GsapAnimations.astro';
       <span id="visitorCount" class="app-version-badge" style="margin-left:6px;background:rgba(139,92,246,0.13);border-color:rgba(139,92,246,0.3);color:#c4b5fd;min-width:60px;text-align:center;">
         👥 <span id="visitorNum" style="font-variant-numeric:tabular-nums;">…</span>
       </span>
+      <button id="themeToggle" class="theme-toggle" type="button" aria-pressed="false">🌙 深色</button>
     </div>
   </div>
+
+  <nav class="workspace-nav" role="tablist" aria-label="工作区导航">
+    <button class="workspace-tab" type="button" role="tab" aria-selected="true" data-workspace-target="core">核心设置</button>
+    <button class="workspace-tab" type="button" role="tab" aria-selected="false" data-workspace-target="worldbook">世界书</button>
+    <button class="workspace-tab" type="button" role="tab" aria-selected="false" data-workspace-target="preview">预览与试聊</button>
+    <button class="workspace-tab" type="button" role="tab" aria-selected="false" data-workspace-target="tools">实验工具</button>
+  </nav>
 
   <div class="app-container">
-    <AIPanel />
-    <CharacterPanel />
-    <WorldbookPanel />
-    <PreviewPanel />
-    <div class="area-chat" style="display:flex;flex-direction:column;gap:16px;">
-      <ChatPlayground />
-      <SecurityCordon unlockClicks={10} label="🔒 变量卡模块封锁中 · 开发未完成">
-        <VariableCardPanel />
-      </SecurityCordon>
-    </div>
-    <StatusBarPanel />
-    <WorldbookAuditor />
+    <section class="workspace-section" data-workspace-section="core">
+      <div class="workspace-section-header">
+        <div>
+          <h2 class="workspace-section-title">核心设置</h2>
+          <p class="workspace-section-desc">API 接入、角色基础信息与草稿管理</p>
+        </div>
+      </div>
+      <div class="workspace-grid workspace-grid-core">
+        <AIPanel />
+        <CharacterPanel />
+      </div>
+    </section>
+
+    <section class="workspace-section" data-workspace-section="worldbook" hidden>
+      <div class="workspace-section-header">
+        <div>
+          <h2 class="workspace-section-title">世界书</h2>
+          <p class="workspace-section-desc">左侧浏览、右侧完整阅读，预览模式支持复制与键盘快速切换</p>
+        </div>
+      </div>
+      <div class="workspace-stack">
+        <WorldbookPanel />
+        <StatusBarPanel />
+        <WorldbookAuditor />
+      </div>
+    </section>
+
+    <section class="workspace-section" data-workspace-section="preview" hidden>
+      <div class="workspace-section-header">
+        <div>
+          <h2 class="workspace-section-title">预览与试聊</h2>
+          <p class="workspace-section-desc">JSON 预览、导入导出与对话回放</p>
+        </div>
+      </div>
+      <div class="workspace-grid workspace-grid-preview">
+        <PreviewPanel />
+        <ChatPlayground />
+      </div>
+    </section>
+
+    <section class="workspace-section" data-workspace-section="tools" hidden>
+      <div class="workspace-section-header">
+        <div>
+          <h2 class="workspace-section-title">实验工具</h2>
+          <p class="workspace-section-desc">变量卡生成器与受限实验模块</p>
+        </div>
+      </div>
+      <div class="workspace-grid workspace-grid-tools">
+        <SecurityCordon unlockClicks={10} label="🔒 变量卡模块封锁中 · 开发未完成">
+          <VariableCardPanel />
+        </SecurityCordon>
+      </div>
+    </section>
   </div>
 
-  <GsapAnimations />
+  <script is:inline>
+    (function () {
+      var STORAGE_KEY = 'st_v3_workspace_tab';
+      var sections = Array.prototype.slice.call(document.querySelectorAll('[data-workspace-section]'));
+      var tabs = Array.prototype.slice.call(document.querySelectorAll('[data-workspace-target]'));
+
+      function activate(name, skipStore) {
+        sections.forEach(function (section) {
+          var active = section.getAttribute('data-workspace-section') === name;
+          section.hidden = !active;
+          section.setAttribute('aria-hidden', active ? 'false' : 'true');
+        });
+
+        tabs.forEach(function (tab) {
+          var active = tab.getAttribute('data-workspace-target') === name;
+          tab.setAttribute('aria-selected', active ? 'true' : 'false');
+        });
+
+        if (!skipStore) {
+          try { localStorage.setItem(STORAGE_KEY, name); } catch (err) {}
+        }
+
+        window.scrollTo({ top: 0, behavior: 'auto' });
+      }
+
+      var initial = 'core';
+      try {
+        var saved = localStorage.getItem(STORAGE_KEY);
+        if (saved && document.querySelector('[data-workspace-section="' + saved + '"]')) {
+          initial = saved;
+        }
+      } catch (err) {}
+
+      tabs.forEach(function (tab) {
+        tab.addEventListener('click', function () {
+          activate(tab.getAttribute('data-workspace-target'));
+        });
+      });
+
+      activate(initial, true);
+    })();
+  </script>
 
   <script is:inline>
     // ============================================================
@@ -210,8 +297,42 @@ import GsapAnimations from '../components/GsapAnimations.astro';
     var entryProb            = document.getElementById('entryProb');
     var btnAddEntry          = document.getElementById('btnAddEntry');
     var entriesList          = document.getElementById('entriesList');
+    var wbShell              = document.querySelector('.wb-shell');
+    var wbEditorHint         = document.getElementById('wbEditorHint');
+    var wbEditorSource       = document.getElementById('wbEditorSource');
+    var wbTotalCount         = document.getElementById('wbTotalCount');
+    var wbAiCount            = document.getElementById('wbAiCount');
+    var wbManualCount        = document.getElementById('wbManualCount');
+    var wbImportCount        = document.getElementById('wbImportCount');
+    var wbFilterButtons      = Array.prototype.slice.call(document.querySelectorAll('[data-wb-filter]'));
+    var wbModeButtons        = Array.prototype.slice.call(document.querySelectorAll('[data-wb-mode]'));
+    var wbModePanels         = Array.prototype.slice.call(document.querySelectorAll('[data-wb-mode-panel]'));
+    var wbPreviewSummary     = document.getElementById('wbPreviewSummary');
+    var wbPreviewNotice      = document.getElementById('wbPreviewNotice');
+    var wbPreviewEmpty       = document.getElementById('wbPreviewEmpty');
+    var wbPreviewView        = document.getElementById('wbPreviewView');
+    var wbPreviewListCount   = document.getElementById('wbPreviewListCount');
+    var wbPreviewSource      = document.getElementById('wbPreviewSource');
+    var wbPreviewStrategy    = document.getElementById('wbPreviewStrategy');
+    var wbPreviewPosition    = document.getElementById('wbPreviewPosition');
+    var wbPreviewDepth       = document.getElementById('wbPreviewDepth');
+    var wbPreviewOrder       = document.getElementById('wbPreviewOrder');
+    var wbPreviewProb        = document.getElementById('wbPreviewProb');
+    var wbPreviewTitle       = document.getElementById('wbPreviewTitle');
+    var wbPreviewKeys        = document.getElementById('wbPreviewKeys');
+    var wbPreviewContent     = document.getElementById('wbPreviewContent');
+    var btnCopyPreviewTitle  = document.getElementById('btnCopyPreviewTitle');
+    var btnCopyPreviewKeys   = document.getElementById('btnCopyPreviewKeys');
+    var btnCopyPreviewContent= document.getElementById('btnCopyPreviewContent');
+    var btnCopyPreviewAll    = document.getElementById('btnCopyPreviewAll');
+    var btnExportWorldbookMd = document.getElementById('btnExportWorldbookMd');
     var btnDownloadJson      = document.getElementById('btnDownloadJson');
     var btnExportPNG         = document.getElementById('btnExportPNG');
+    var worldbookImportInput = document.getElementById('worldbookImportInput');
+    var btnWorldbookImportFile = document.getElementById('btnWorldbookImportFile');
+    var btnWorldbookImportText = document.getElementById('btnWorldbookImportText');
+    var worldbookImportText  = document.getElementById('worldbookImportText');
+    var worldbookImportStatus = document.getElementById('worldbookImportStatus');
 
     // ============================================================
     //  状态
@@ -223,14 +344,806 @@ import GsapAnimations from '../components/GsapAnimations.astro';
     var currentDraftId       = "";
     var parsedPresetList     = [];
     var editingIndex         = -1;
+    var selectedWorldbookIndex = -1;
+    var worldbookBrowseFilter = 'all';
+    var worldbookMode        = 'edit';
     var statusBarActive      = true;
     var cachedSearchResults  = null;
+    var previewTypeahead     = '';
+    var previewTypeaheadTimer = null;
 
     if (!window.__altGreetings__) window.__altGreetings__ = [];
 
     var DRAFTS_KEY  = "st_v3_builder_drafts";
     var CURRENT_KEY = "st_v3_builder_current_id";
     var AI_KEY      = "st_v3_builder_ai_config";
+    var WB_MODE_KEY = "st_v3_worldbook_mode";
+
+    // ============================================================
+    //  世界书工具
+    // ============================================================
+    function escapeHTML(str) {
+      return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function safeInt(value, fallback) {
+      var num = parseInt(value, 10);
+      return isNaN(num) ? fallback : num;
+    }
+
+    function normalizeWorldbookEntry(entry, fallbackSource) {
+      entry = entry || {};
+      var extensions = entry.extensions || {};
+      return {
+        comment: entry.comment || '',
+        content: entry.content || '',
+        keys: Array.isArray(entry.keys) ? entry.keys.slice() : [],
+        secondaryKeys: Array.isArray(entry.secondaryKeys)
+          ? entry.secondaryKeys.slice()
+          : Array.isArray(entry.secondary_keys)
+            ? entry.secondary_keys.slice()
+            : [],
+        strategy: entry.strategy || 'selective',
+        position: safeInt(entry.position, 4),
+        depth: safeInt(entry.depth, 4),
+        role: safeInt(entry.role, 0),
+        order: safeInt(entry.order !== undefined ? entry.order : entry.insertion_order, 100),
+        prob: safeInt(entry.prob !== undefined ? entry.prob : entry.probability, 100),
+        enabled: entry.enabled !== undefined ? !!entry.enabled : true,
+        useRegex: entry.useRegex !== undefined ? !!entry.useRegex : !!entry.use_regex,
+        selectiveLogic: safeInt(entry.selectiveLogic !== undefined ? entry.selectiveLogic : extensions.selectiveLogic, 0),
+        group: entry.group || extensions.group || '',
+        groupWeight: safeInt(entry.groupWeight !== undefined ? entry.groupWeight : extensions.group_weight, 100),
+        useProbability: entry.useProbability !== undefined ? !!entry.useProbability : (extensions.useProbability !== undefined ? !!extensions.useProbability : true),
+        excludeRecursion: entry.excludeRecursion !== undefined ? !!entry.excludeRecursion : !!extensions.exclude_recursion,
+        preventRecursion: entry.preventRecursion !== undefined ? !!entry.preventRecursion : !!extensions.prevent_recursion,
+        delayUntilRecursion: entry.delayUntilRecursion !== undefined ? !!entry.delayUntilRecursion : !!extensions.delay_until_recursion,
+        groupOverride: entry.groupOverride !== undefined ? !!entry.groupOverride : !!extensions.group_override,
+        vectorized: entry.vectorized !== undefined ? !!entry.vectorized : !!extensions.vectorized,
+        outletName: entry.outletName || extensions.outlet_name || '',
+        source: entry.source || fallbackSource || 'manual'
+      };
+    }
+
+    function getWorldbookSourceLabel(source) {
+      if (source === 'ai') return 'AI 生成';
+      if (source === 'import') return '导入';
+      return '手动';
+    }
+
+    function getWorldbookSourceClass(source) {
+      if (source === 'ai') return 'wb-source-ai';
+      if (source === 'import') return 'wb-source-import';
+      return 'wb-source-manual';
+    }
+
+    function getWorldbookEntriesForSource(source) {
+      if (source === 'all') return worldbookEntries.slice();
+      return worldbookEntries.filter(function(entry) {
+        return (entry.source || 'manual') === source;
+      });
+    }
+
+    function updateWorldbookHeaderCounts() {
+      var counts = { ai: 0, manual: 0, import: 0 };
+      worldbookEntries.forEach(function(entry) {
+        var source = entry.source || 'manual';
+        if (source === 'ai') counts.ai++;
+        else if (source === 'import') counts.import++;
+        else counts.manual++;
+      });
+      if (wbTotalCount) wbTotalCount.textContent = worldbookEntries.length + ' 条';
+      if (wbAiCount) wbAiCount.textContent = 'AI ' + counts.ai;
+      if (wbManualCount) wbManualCount.textContent = '手动 ' + counts.manual;
+      if (wbImportCount) wbImportCount.textContent = '导入 ' + counts.import;
+
+      wbFilterButtons.forEach(function(btn) {
+        var filter = btn.getAttribute('data-wb-filter');
+        var countEl = btn.querySelector('[data-filter-count]');
+        if (!countEl) return;
+        var count = filter === 'all' ? worldbookEntries.length : counts[filter] || 0;
+        countEl.textContent = count;
+      });
+    }
+
+    function updateWorldbookFilterUI() {
+      wbFilterButtons.forEach(function(btn) {
+        var active = btn.getAttribute('data-wb-filter') === worldbookBrowseFilter;
+        btn.classList.toggle('is-active', active);
+        btn.setAttribute('aria-selected', active ? 'true' : 'false');
+      });
+    }
+
+    function setWorldbookEditorMeta(index) {
+      if (!wbEditorHint || !wbEditorSource) return;
+      if (index === undefined || index === null || index < 0 || index >= worldbookEntries.length) {
+        wbEditorHint.textContent = '点击左侧条目后在这里修改，未选中时会作为新条目保存。';
+        wbEditorSource.textContent = '新建';
+        wbEditorSource.className = 'wb-pill wb-pill-neutral';
+        return;
+      }
+      var entry = worldbookEntries[index];
+      wbEditorHint.textContent = '正在编辑：' + (entry.comment || '未命名条目');
+      wbEditorSource.textContent = getWorldbookSourceLabel(entry.source || 'manual');
+      wbEditorSource.className = 'wb-pill ' + getWorldbookSourceClass(entry.source || 'manual');
+    }
+
+    function setWorldbookMode(mode, skipStore) {
+      worldbookMode = mode === 'preview' ? 'preview' : 'edit';
+
+      wbModeButtons.forEach(function(btn) {
+        var active = btn.getAttribute('data-wb-mode') === worldbookMode;
+        btn.classList.toggle('is-active', active);
+        btn.setAttribute('aria-selected', active ? 'true' : 'false');
+      });
+
+      wbModePanels.forEach(function(panel) {
+        var active = panel.getAttribute('data-wb-mode-panel') === worldbookMode;
+        panel.hidden = !active;
+        panel.setAttribute('aria-hidden', active ? 'false' : 'true');
+      });
+
+      if (wbShell) {
+        wbShell.classList.toggle('is-preview-mode', worldbookMode === 'preview');
+      }
+      if (entriesList) {
+        entriesList.hidden = worldbookMode === 'preview';
+      }
+      Array.prototype.slice.call(document.querySelectorAll('.area-statusbar, .area-auditor')).forEach(function(panel) {
+        panel.hidden = worldbookMode === 'preview';
+        panel.setAttribute('aria-hidden', worldbookMode === 'preview' ? 'true' : 'false');
+      });
+
+      if (!skipStore) {
+        try { localStorage.setItem(WB_MODE_KEY, worldbookMode); } catch (err) {}
+      }
+
+      if (worldbookMode === 'edit') {
+        if (selectedWorldbookIndex >= 0 && selectedWorldbookIndex < worldbookEntries.length) {
+          loadWorldbookEntryIntoEditor(selectedWorldbookIndex);
+        } else {
+          resetWBForm();
+        }
+      }
+
+      renderEntriesList();
+      if (worldbookMode === 'preview' && wbPreviewView) {
+        setTimeout(function() {
+          try {
+            wbPreviewView.focus({ preventScroll: true });
+          } catch (err) {
+            wbPreviewView.focus();
+          }
+        }, 0);
+      }
+    }
+
+    function getVisibleWorldbookItems() {
+      return worldbookEntries
+        .map(function(entry, index) { return { entry: entry, index: index }; })
+        .filter(function(item) {
+          if (worldbookBrowseFilter === 'all') return true;
+          return (item.entry.source || 'manual') === worldbookBrowseFilter;
+        });
+    }
+
+    function getPreviewFocusIndex() {
+      var visible = getVisibleWorldbookItems();
+      if (selectedWorldbookIndex >= 0 && selectedWorldbookIndex < worldbookEntries.length) {
+        var selectedItem = worldbookEntries[selectedWorldbookIndex];
+        if (worldbookBrowseFilter === 'all' || (selectedItem && (selectedItem.source || 'manual') === worldbookBrowseFilter)) {
+          return selectedWorldbookIndex;
+        }
+      }
+      if (editingIndex >= 0 && editingIndex < worldbookEntries.length) {
+        var editingItem = worldbookEntries[editingIndex];
+        if (worldbookBrowseFilter === 'all' || (editingItem && (editingItem.source || 'manual') === worldbookBrowseFilter)) {
+          return editingIndex;
+        }
+      }
+      return visible.length ? visible[0].index : -1;
+    }
+
+    function makePreviewCopyText(entry) {
+      entry = entry || {};
+      var title = entry.comment || '未命名';
+      var keys = (entry.keys || []).join(', ') || '无';
+      var content = entry.content || '';
+      return [
+        '标题：' + title,
+        '来源：' + getWorldbookSourceLabel(entry.source || 'manual'),
+        '触发词：' + keys,
+        '策略：' + (entry.strategy || 'selective'),
+        '位置：' + String(entry.position !== undefined ? entry.position : 4),
+        '深度：' + String(entry.depth !== undefined ? entry.depth : 4),
+        '顺序：' + String(entry.order !== undefined ? entry.order : 100),
+        '概率：' + String(entry.prob !== undefined ? entry.prob : 100) + '%',
+        '',
+        '设定内容：',
+        content
+      ].join('\n');
+    }
+
+    function cleanWorldbookTitle(comment, index) {
+      var title = String(comment || '').trim();
+      title = title.replace(/^=+\s*/g, '').replace(/\s*=+$/g, '').trim();
+      return title || ('未命名条目 ' + String(index + 1));
+    }
+
+    function normalizeWorldbookTextBlock(text) {
+      return String(text || '')
+        .replace(/\r\n/g, '\n')
+        .replace(/\r/g, '\n')
+        .trim();
+    }
+
+    function extractWorldbookImportJSON(text) {
+      var raw = String(text || '').replace(/^\uFEFF/, '').trim();
+      if (!raw) return '';
+      var fence = raw.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+      if (fence && fence[1]) {
+        raw = fence[1].trim();
+      }
+      return raw;
+    }
+
+    function parseWorldbookImportJSON(text) {
+      var raw = extractWorldbookImportJSON(text);
+      if (!raw) throw new Error('导入内容为空');
+      return JSON.parse(raw);
+    }
+
+    function getWorldbookImportName(payload, fallbackName) {
+      if (!payload || typeof payload !== 'object') return fallbackName || '';
+      if (payload.data) {
+        if (payload.data.character_book && payload.data.character_book.name && String(payload.data.character_book.name).trim()) {
+          return String(payload.data.character_book.name).trim();
+        }
+        if (payload.data.extensions && payload.data.extensions.world && String(payload.data.extensions.world).trim()) {
+          return String(payload.data.extensions.world).trim();
+        }
+      }
+      if (payload.character_book && payload.character_book.name && String(payload.character_book.name).trim()) {
+        return String(payload.character_book.name).trim();
+      }
+      if (payload.name && String(payload.name).trim()) return String(payload.name).trim();
+      return fallbackName || '';
+    }
+
+    function getImportedWorldbookEntries(payload) {
+      if (!payload) return [];
+
+      var container = payload;
+      if (payload.data && payload.data.character_book) {
+        container = payload.data.character_book;
+      } else if (payload.character_book) {
+        container = payload.character_book;
+      }
+
+      var entries = [];
+      if (Array.isArray(container)) {
+        entries = container.slice();
+      } else if (Array.isArray(container.entries)) {
+        entries = container.entries.slice();
+      } else if (container.entries && typeof container.entries === 'object') {
+        entries = Object.keys(container.entries)
+          .sort(function(a, b) {
+            var na = parseInt(a, 10);
+            var nb = parseInt(b, 10);
+            if (isNaN(na) || isNaN(nb)) return String(a).localeCompare(String(b), 'zh-Hans-CN');
+            return na - nb;
+          })
+          .map(function(key) {
+            return container.entries[key];
+          })
+          .filter(function(entry) { return entry !== undefined && entry !== null; });
+      } else if (Array.isArray(payload.entries)) {
+        entries = payload.entries.slice();
+      } else if (payload.entries && typeof payload.entries === 'object') {
+        entries = Object.keys(payload.entries)
+          .sort(function(a, b) {
+            var na = parseInt(a, 10);
+            var nb = parseInt(b, 10);
+            if (isNaN(na) || isNaN(nb)) return String(a).localeCompare(String(b), 'zh-Hans-CN');
+            return na - nb;
+          })
+          .map(function(key) {
+            return payload.entries[key];
+          })
+          .filter(function(entry) { return entry !== undefined && entry !== null; });
+      }
+
+      return entries.map(function(entry, index) {
+        var ext = entry && entry.extensions ? entry.extensions : {};
+        var keys = Array.isArray(entry && entry.keys)
+          ? entry.keys.slice()
+          : Array.isArray(entry && entry.key)
+            ? entry.key.slice()
+            : [];
+        var secondaryKeys = Array.isArray(entry && entry.secondary_keys)
+          ? entry.secondary_keys.slice()
+          : Array.isArray(entry && entry.keysecondary)
+            ? entry.keysecondary.slice()
+            : [];
+        var vectorized = !!(entry && (entry.vectorized || ext.vectorized));
+        var constant = !!(entry && entry.constant);
+        var strategy = entry && entry.strategy
+          ? entry.strategy
+          : (constant ? 'constant' : (vectorized ? 'vectorized' : 'selective'));
+
+        return normalizeWorldbookEntry({
+          comment: entry && (entry.comment || entry.title || entry.name) || '',
+          content: entry && entry.content || '',
+          keys: keys,
+          secondaryKeys: secondaryKeys,
+          strategy: strategy,
+          position: safeInt(ext.position !== undefined ? ext.position : entry && entry.position, 4),
+          depth: safeInt(ext.depth !== undefined ? ext.depth : entry && entry.depth, 4),
+          role: safeInt(ext.role !== undefined ? ext.role : entry && entry.role, 0),
+          order: safeInt(entry && (entry.insertion_order !== undefined ? entry.insertion_order : entry.order), 100),
+          prob: safeInt(ext.probability !== undefined ? ext.probability : entry && (entry.probability !== undefined ? entry.probability : entry.prob), 100),
+          enabled: entry && entry.enabled !== undefined ? !!entry.enabled : true,
+          useRegex: entry && entry.use_regex !== undefined ? !!entry.use_regex : !!(entry && entry.useRegex),
+          selectiveLogic: safeInt(ext.selectiveLogic !== undefined ? ext.selectiveLogic : entry && entry.selectiveLogic, 0),
+          group: ext.group || (entry && entry.group) || '',
+          groupWeight: safeInt(ext.group_weight !== undefined ? ext.group_weight : entry && entry.group_weight, 100),
+          useProbability: ext.useProbability !== undefined ? !!ext.useProbability : true,
+          excludeRecursion: ext.exclude_recursion !== undefined ? !!ext.exclude_recursion : !!(entry && entry.excludeRecursion),
+          preventRecursion: ext.prevent_recursion !== undefined ? !!ext.prevent_recursion : !!(entry && entry.preventRecursion),
+          delayUntilRecursion: ext.delay_until_recursion !== undefined ? !!ext.delay_until_recursion : !!(entry && entry.delayUntilRecursion),
+          groupOverride: ext.group_override !== undefined ? !!ext.group_override : !!(entry && entry.groupOverride),
+          vectorized: vectorized,
+          outletName: ext.outlet_name || (entry && entry.outletName) || '',
+          source: 'import'
+        }, 'import');
+      });
+    }
+
+    function showWorldbookImportStatus(message, tone) {
+      if (!worldbookImportStatus) return;
+      var map = {
+        info: { color: '#6ee7b7', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.18)' },
+        ok: { color: '#34d399', bg: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.28)' },
+        error: { color: '#fca5a5', bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.2)' }
+      };
+      var c = map[tone] || map.info;
+      worldbookImportStatus.style.color = c.color;
+      worldbookImportStatus.style.background = c.bg;
+      worldbookImportStatus.style.borderColor = c.border;
+      worldbookImportStatus.textContent = message;
+    }
+
+    function applyImportedWorldbook(payload, fallbackName) {
+      var entries = getImportedWorldbookEntries(payload);
+      if (!entries.length) {
+        throw new Error('没有找到可导入的世界书条目');
+      }
+
+      var importedName = getWorldbookImportName(payload, fallbackName);
+      worldbookEntries = entries;
+      if (importedName) {
+        wbName.value = importedName;
+      }
+      editingIndex = -1;
+      selectedWorldbookIndex = -1;
+      worldbookBrowseFilter = 'all';
+      resetWBForm();
+      updateWorldbookFilterUI();
+      setWorldbookEditorMeta(-1);
+      renderEntriesList();
+      updatePreview();
+      saveCurrentDraft();
+      window.dispatchEvent(new CustomEvent('worldbook-changed'));
+      showWorldbookImportStatus('已导入 ' + String(entries.length) + ' 条世界书', 'ok');
+    }
+
+    function buildWorldbookMarkdown(entries) {
+      var list = Array.isArray(entries) ? entries : [];
+      var lines = [];
+      lines.push('世界书词条导出');
+      lines.push('');
+      lines.push('共 ' + String(list.length) + ' 条');
+      lines.push('');
+      list.forEach(function(entry, index) {
+        var title = cleanWorldbookTitle(entry && entry.comment, index);
+        var keys = Array.isArray(entry && entry.keys) ? entry.keys.filter(function(key) {
+          return String(key || '').trim().length > 0;
+        }) : [];
+        var content = normalizeWorldbookTextBlock(entry && entry.content);
+        lines.push('条目 ' + String(index + 1));
+        lines.push('标题：' + title);
+        lines.push('触发词：' + (keys.length ? keys.join('，') : '无'));
+        lines.push('设定内容：');
+        lines.push(content || '（空）');
+        lines.push('');
+      });
+      return lines.join('\n').replace(/\n+$/, '') + '\n';
+    }
+
+    function downloadWorldbookMarkdown() {
+      var markdown = buildWorldbookMarkdown(worldbookEntries);
+      var nameSource = (wbName && wbName.value && wbName.value.trim()) || (charName && charName.value && charName.value.trim()) || 'worldbook';
+      var fileName = nameSource.replace(/[\\/:*?"<>|]+/g, '_').trim() || 'worldbook';
+      var blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = fileName + '.md';
+      a.click();
+      setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+    }
+
+    function getPreviewVisibleIndex(visible, globalIndex) {
+      for (var i = 0; i < visible.length; i++) {
+        if (visible[i].index === globalIndex) return i;
+      }
+      return -1;
+    }
+
+    function getPreviewSelectionIndex(visible) {
+      var current = getPreviewVisibleIndex(visible, selectedWorldbookIndex);
+      if (current >= 0) return current;
+      current = getPreviewVisibleIndex(visible, editingIndex);
+      if (current >= 0) return current;
+      return visible.length ? 0 : -1;
+    }
+
+    function setPreviewNotice(text) {
+      if (wbPreviewNotice) {
+        wbPreviewNotice.textContent = text || '';
+      }
+    }
+
+    function copyWorldbookText(text, statusLabel) {
+      if (!text) return Promise.resolve(false);
+      var done = function(ok) {
+        setPreviewNotice(ok ? (statusLabel || '已复制') : '复制失败，请手动全选复制');
+        return ok;
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        return navigator.clipboard.writeText(text).then(function() { return done(true); }).catch(function() { return done(false); });
+      }
+      try {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.setAttribute('readonly', 'readonly');
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        var ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        return Promise.resolve(done(ok));
+      } catch (err) {
+        return Promise.resolve(done(false));
+      }
+    }
+
+    function setPreviewCopyButtonsEnabled(enabled) {
+      [
+        btnCopyPreviewTitle,
+        btnCopyPreviewKeys,
+        btnCopyPreviewContent,
+        btnCopyPreviewAll
+      ].forEach(function(btn) {
+        if (btn) btn.disabled = !enabled;
+      });
+    }
+
+    function focusPreviewList() {
+      if (!wbPreviewView) return;
+      try {
+        wbPreviewView.focus({ preventScroll: true });
+      } catch (err) {
+        wbPreviewView.focus();
+      }
+    }
+
+    function selectPreviewIndex(index, opts) {
+      opts = opts || {};
+      if (index < 0 || index >= worldbookEntries.length) return;
+      selectedWorldbookIndex = index;
+      renderWorldbookPreview();
+      if (opts.focus && wbPreviewView) {
+        focusPreviewList();
+      }
+    }
+
+    function movePreviewSelection(delta) {
+      var visible = getVisibleWorldbookItems();
+      if (!visible.length) return;
+      var current = getPreviewSelectionIndex(visible);
+      if (current < 0) current = 0;
+      var next = current + delta;
+      if (next < 0) next = 0;
+      if (next >= visible.length) next = visible.length - 1;
+      selectPreviewIndex(visible[next].index, { focus: true });
+    }
+
+    function jumpPreviewSelection(index) {
+      var visible = getVisibleWorldbookItems();
+      if (!visible.length) return;
+      if (index < 0) index = 0;
+      if (index >= visible.length) index = visible.length - 1;
+      selectPreviewIndex(visible[index].index, { focus: true });
+    }
+
+    function findPreviewMatch(query) {
+      var visible = getVisibleWorldbookItems();
+      if (!visible.length) return -1;
+      var needle = String(query || '').trim().toLowerCase();
+      if (!needle) return -1;
+      var start = getPreviewSelectionIndex(visible);
+      var order = visible.slice(start + 1).concat(visible.slice(0, start + 1));
+      for (var i = 0; i < order.length; i++) {
+        var item = order[i].entry || {};
+        var haystack = [
+          item.comment || '',
+          Array.isArray(item.keys) ? item.keys.join(' ') : '',
+          item.content || ''
+        ].join(' ').toLowerCase();
+        if (haystack.indexOf(needle) >= 0) {
+          return order[i].index;
+        }
+      }
+      return -1;
+    }
+
+    function handlePreviewKeydown(event) {
+      if (worldbookMode !== 'preview') return;
+      if (!wbPreviewView || wbPreviewView.hidden) return;
+      var target = event.target || document.activeElement;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        return;
+      }
+      var visible = getVisibleWorldbookItems();
+      if (!visible.length) return;
+
+      if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') {
+        event.preventDefault();
+        movePreviewSelection(-1);
+        return;
+      }
+      if (event.key === 'ArrowDown' || event.key === 'ArrowRight') {
+        event.preventDefault();
+        movePreviewSelection(1);
+        return;
+      }
+      if (event.key === 'Home') {
+        event.preventDefault();
+        jumpPreviewSelection(0);
+        return;
+      }
+      if (event.key === 'End') {
+        event.preventDefault();
+        jumpPreviewSelection(visible.length - 1);
+        return;
+      }
+      if (event.key === 'PageUp') {
+        event.preventDefault();
+        movePreviewSelection(-Math.max(1, Math.floor(visible.length / 6)));
+        return;
+      }
+      if (event.key === 'PageDown') {
+        event.preventDefault();
+        movePreviewSelection(Math.max(1, Math.floor(visible.length / 6)));
+        return;
+      }
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        renderWorldbookPreview();
+        return;
+      }
+      if (event.ctrlKey || event.metaKey || event.altKey || event.isComposing || event.key.length !== 1) {
+        return;
+      }
+      previewTypeahead += event.key;
+      clearTimeout(previewTypeaheadTimer);
+      previewTypeaheadTimer = setTimeout(function() {
+        previewTypeahead = '';
+      }, 650);
+      var matched = findPreviewMatch(previewTypeahead);
+      if (matched >= 0) {
+        event.preventDefault();
+        selectedWorldbookIndex = matched;
+        renderWorldbookPreview();
+        focusPreviewList();
+        return;
+      }
+      if (previewTypeahead.length > 1) {
+        var singleMatch = findPreviewMatch(event.key);
+        if (singleMatch >= 0) {
+          event.preventDefault();
+          selectedWorldbookIndex = singleMatch;
+          renderWorldbookPreview();
+          focusPreviewList();
+        }
+      }
+    }
+
+    if (wbPreviewView) {
+      wbPreviewView.addEventListener('keydown', handlePreviewKeydown);
+    }
+
+    function bindPreviewCopyButton(btn, label, textFactory) {
+      if (!btn) return;
+      btn.addEventListener('click', function() {
+        var idx = getPreviewFocusIndex();
+        if (idx < 0 || idx >= worldbookEntries.length) return;
+        copyWorldbookText(textFactory(worldbookEntries[idx]), label);
+      });
+    }
+
+    function setPreviewDetail(entry, index, visibleCount, posMap) {
+      entry = entry || {};
+      if (wbPreviewSummary) {
+        var visibleIndex = 0;
+        if (index >= 0) {
+          visibleIndex = getPreviewVisibleIndex(getVisibleWorldbookItems(), index);
+        }
+        wbPreviewSummary.textContent = visibleCount
+          ? ('当前预览共 ' + visibleCount + ' 条，正在查看第 ' + String(visibleIndex >= 0 ? visibleIndex + 1 : 1) + ' 条：' + (entry.comment || '未命名条目') + '。')
+          : '当前筛选没有可预览条目。';
+      }
+      if (wbPreviewListCount) {
+        wbPreviewListCount.textContent = visibleCount + ' 条';
+      }
+      if (wbPreviewSource) {
+        var source = entry.source || 'manual';
+        wbPreviewSource.textContent = getWorldbookSourceLabel(source);
+        wbPreviewSource.className = 'wb-pill ' + getWorldbookSourceClass(source);
+      }
+      if (wbPreviewStrategy) {
+        wbPreviewStrategy.textContent = '策略 · ' + (entry.strategy || 'selective');
+      }
+      if (wbPreviewPosition) {
+        wbPreviewPosition.textContent = '位置 · ' + (posMap[entry.position] || String(entry.position !== undefined ? entry.position : 4));
+      }
+      if (wbPreviewDepth) {
+        wbPreviewDepth.textContent = '深度 · ' + String(entry.depth !== undefined ? entry.depth : 4);
+      }
+      if (wbPreviewOrder) {
+        wbPreviewOrder.textContent = '顺序 · ' + String(entry.order !== undefined ? entry.order : 100);
+      }
+      if (wbPreviewProb) {
+        wbPreviewProb.textContent = '概率 · ' + String(entry.prob !== undefined ? entry.prob : 100) + '%';
+      }
+      if (wbPreviewTitle) {
+        wbPreviewTitle.textContent = entry.comment || '未命名条目';
+      }
+      if (wbPreviewKeys) {
+        var keys = Array.isArray(entry.keys) ? entry.keys : [];
+        wbPreviewKeys.innerHTML = keys.length
+          ? keys.map(function(key) {
+              return '<span class="wb-preview-key-chip">' + escapeHTML(key) + '</span>';
+            }).join('')
+          : '<span class="wb-preview-key-chip">无触发词</span>';
+      }
+      if (wbPreviewContent) {
+        wbPreviewContent.textContent = entry.content || '（空内容）';
+      }
+      setPreviewNotice('键盘：↑↓ 切换，Home/End 跳转，输入首字快速定位。');
+    }
+
+    function renderWorldbookPreview() {
+      if (!wbPreviewEmpty || !wbPreviewView) return;
+      var visible = getVisibleWorldbookItems();
+      var focusIndex = getPreviewFocusIndex();
+      var posMap = ["0前","1后","2前EM","3后EM","4深度","5前AN","6后AN"];
+
+      if (entriesList) {
+        entriesList.hidden = true;
+      }
+
+      if (wbPreviewListCount) {
+        wbPreviewListCount.textContent = visible.length + ' 条';
+      }
+
+      if (!visible.length) {
+        wbPreviewEmpty.hidden = false;
+        wbPreviewView.hidden = true;
+        wbPreviewView.innerHTML = '';
+        setPreviewCopyButtonsEnabled(false);
+        setPreviewDetail({}, -1, 0, posMap);
+        setPreviewNotice(worldbookEntries.length ? '当前筛选没有结果，换个来源标签试试。' : '还没有可预览条目，先添加或导入一些内容。');
+        if (wbPreviewEmpty) {
+          wbPreviewEmpty.textContent = worldbookEntries.length ? '当前筛选没有可预览条目，换个来源标签看看。' : '还没有可预览条目。';
+        }
+        return;
+      }
+
+      selectedWorldbookIndex = focusIndex >= 0 ? focusIndex : visible[0].index;
+      var focusEntry = selectedWorldbookIndex >= 0 ? worldbookEntries[selectedWorldbookIndex] : visible[0].entry;
+      setPreviewDetail(focusEntry, selectedWorldbookIndex, visible.length, posMap);
+
+      wbPreviewEmpty.hidden = true;
+      wbPreviewView.hidden = false;
+      wbPreviewView.setAttribute('aria-activedescendant', selectedWorldbookIndex >= 0 ? 'wb-preview-item-' + selectedWorldbookIndex : '');
+      wbPreviewView.innerHTML = visible.map(function(item, visibleIndex) {
+        var entry = item.entry;
+        var index = item.index;
+        var source = entry.source || 'manual';
+        var sourceClass = getWorldbookSourceClass(source);
+        var sourceLabel = getWorldbookSourceLabel(source);
+        var isSk = (entry.content || '').length < 60;
+        var safeComment = escapeHTML(entry.comment || '未命名条目');
+        var preview = (entry.content || '').replace(/\s+/g, ' ').trim();
+        if (preview.length > 220) preview = preview.slice(0, 220) + '…';
+        var safePreview = escapeHTML(preview || '（空内容）');
+        var keys = Array.isArray(entry.keys) ? entry.keys : [];
+        var keysHtml = keys.length
+          ? keys.map(function(key) {
+              return '<span class="wb-preview-key-chip">' + escapeHTML(key) + '</span>';
+            }).join('')
+          : '<span class="wb-preview-key-chip">无触发词</span>';
+        var safeMeta = '位置: ' + escapeHTML(posMap[entry.position] || String(entry.position)) + ' · 顺序: ' + escapeHTML(String(entry.order)) + ' · 深度: ' + escapeHTML(String(entry.depth)) + ' · 概率: ' + escapeHTML(String(entry.prob)) + '%';
+        var selected = selectedWorldbookIndex === index;
+
+        return '' +
+          '<article id="wb-preview-item-' + index + '" class="wb-preview-row' + (selected ? ' is-selected' : '') + '" role="option" aria-selected="' + (selected ? 'true' : 'false') + '" aria-posinset="' + String(visibleIndex + 1) + '" aria-setsize="' + String(visible.length) + '" data-preview-select="' + index + '">' +
+            '<div class="wb-preview-row-head">' +
+              '<div>' +
+                '<h4 class="wb-preview-row-title">' + safeComment + '</h4>' +
+                '<div class="wb-preview-row-meta">' + safeMeta + ' · <span class="wb-source-pill ' + sourceClass + '">' + sourceLabel + '</span>' + (isSk ? ' · <span class="wb-source-pill wb-source-skeleton">骨架</span>' : '') + '</div>' +
+              '</div>' +
+              '<span class="wb-source-pill">查看详情</span>' +
+            '</div>' +
+            '<p class="wb-preview-row-preview">' + safePreview + '</p>' +
+            '<div class="wb-preview-row-keys">' + keysHtml + '</div>' +
+          '</article>';
+      }).join('');
+
+      setPreviewCopyButtonsEnabled(true);
+      if (selectedWorldbookIndex >= 0) {
+        var activeNode = document.getElementById('wb-preview-item-' + selectedWorldbookIndex);
+        if (activeNode && activeNode.scrollIntoView) {
+          activeNode.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        }
+      }
+
+      wbPreviewView.querySelectorAll('[data-preview-select]').forEach(function(node) {
+        node.addEventListener('click', function(e) {
+          e.stopPropagation();
+          var idx = parseInt(node.getAttribute('data-preview-select'), 10);
+          if (isNaN(idx)) return;
+          selectPreviewIndex(idx, { focus: true });
+        });
+      });
+    }
+
+    function setWorldbookFilter(filter) {
+      worldbookBrowseFilter = filter || 'all';
+      updateWorldbookFilterUI();
+      renderEntriesList();
+    }
+
+    wbModeButtons.forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        setWorldbookMode(btn.getAttribute('data-wb-mode') || 'edit');
+      });
+    });
+
+    if (btnExportWorldbookMd) {
+      btnExportWorldbookMd.addEventListener('click', function() {
+        if (!worldbookEntries.length) return alert('世界书为空，暂无可导出的词条。');
+        downloadWorldbookMarkdown();
+      });
+    }
+
+    setPreviewCopyButtonsEnabled(false);
+
+    bindPreviewCopyButton(btnCopyPreviewTitle, '标题已复制', function(entry) {
+      return entry.comment || '未命名条目';
+    });
+    bindPreviewCopyButton(btnCopyPreviewKeys, '触发词已复制', function(entry) {
+      return (Array.isArray(entry.keys) ? entry.keys.join(', ') : '') || '无触发词';
+    });
+    bindPreviewCopyButton(btnCopyPreviewContent, '设定内容已复制', function(entry) {
+      return entry.content || '（空内容）';
+    });
+    bindPreviewCopyButton(btnCopyPreviewAll, '整条已复制', function(entry) {
+      return makePreviewCopyText(entry);
+    });
 
     // ============================================================
     //  全局桥接
@@ -242,7 +1155,8 @@ import GsapAnimations from '../components/GsapAnimations.astro';
       for (var i = 0; i < worldbookEntries.length; i++) {
         if (worldbookEntries[i].comment === wbEntry.comment) { idx = i; break; }
       }
-      if (idx >= 0) worldbookEntries[idx] = wbEntry; else worldbookEntries.push(wbEntry);
+      var nextEntry = normalizeWorldbookEntry(wbEntry, wbEntry && wbEntry.source ? wbEntry.source : 'manual');
+      if (idx >= 0) worldbookEntries[idx] = nextEntry; else worldbookEntries.push(nextEntry);
       regexScripts = Array.isArray(regexOrArray) ? regexOrArray : [regexOrArray];
       renderEntriesList();
       debouncedUpdateAndSave();
@@ -253,10 +1167,11 @@ import GsapAnimations from '../components/GsapAnimations.astro';
       if (!Array.isArray(entries)) return;
       entries.forEach(function(entry) {
         var idx = -1;
+        var nextEntry = normalizeWorldbookEntry(entry, entry && entry.source ? entry.source : 'import');
         for (var i = 0; i < worldbookEntries.length; i++) {
-          if (worldbookEntries[i].comment === entry.comment) { idx = i; break; }
+          if (worldbookEntries[i].comment === nextEntry.comment) { idx = i; break; }
         }
-        if (idx >= 0) worldbookEntries[idx] = entry; else worldbookEntries.push(entry);
+        if (idx >= 0) worldbookEntries[idx] = nextEntry; else worldbookEntries.push(nextEntry);
       });
       if (Array.isArray(newRegexScripts)) {
         newRegexScripts.forEach(function(rx) {
@@ -304,6 +1219,14 @@ import GsapAnimations from '../components/GsapAnimations.astro';
       debouncedUpdateAndSave();
     };
 
+    wbFilterButtons.forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        setWorldbookFilter(btn.getAttribute('data-wb-filter') || 'all');
+      });
+    });
+    updateWorldbookFilterUI();
+    setWorldbookEditorMeta(-1);
+
 window.applyJSONFromEditor = function(json) {
   if (!json || !json.data) return;
   charName.value     = json.data.name || json.name || '';
@@ -313,18 +1236,36 @@ window.applyJSONFromEditor = function(json) {
   creatorNotes.value = json.data.creator_notes || '';
   if (json.data.character_book && json.data.character_book.entries) {
     worldbookEntries = json.data.character_book.entries.map(function(e) {
-      return {
+      return normalizeWorldbookEntry({
         comment:  e.comment || '',
         content:  e.content || '',
         keys:     e.keys || [],
+        secondaryKeys: Array.isArray(e.secondary_keys) ? e.secondary_keys : [],
         strategy: e.constant ? 'constant' : (e.extensions && e.extensions.vectorized ? 'vectorized' : 'selective'),
         position: (e.extensions && e.extensions.position !== undefined) ? e.extensions.position : 4,
         depth:    (e.extensions && e.extensions.depth !== undefined) ? e.extensions.depth : 4,
         role:     (e.extensions && e.extensions.role !== undefined) ? e.extensions.role : 0,
         order:    e.insertion_order || 100,
-        prob:     (e.extensions && e.extensions.probability !== undefined) ? e.extensions.probability : 100
-      };
+        prob:     (e.extensions && e.extensions.probability !== undefined) ? e.extensions.probability : 100,
+        enabled:  e.enabled !== undefined ? !!e.enabled : true,
+        useRegex: !!e.use_regex,
+        selectiveLogic: (e.extensions && e.extensions.selectiveLogic !== undefined) ? e.extensions.selectiveLogic : 0,
+        group: (e.extensions && e.extensions.group) || '',
+        groupWeight: (e.extensions && e.extensions.group_weight !== undefined) ? e.extensions.group_weight : 100,
+        useProbability: (e.extensions && e.extensions.useProbability !== undefined) ? !!e.extensions.useProbability : true,
+        excludeRecursion: (e.extensions && e.extensions.exclude_recursion) || false,
+        preventRecursion: (e.extensions && e.extensions.prevent_recursion) || false,
+        delayUntilRecursion: (e.extensions && e.extensions.delay_until_recursion) || false,
+        groupOverride: (e.extensions && e.extensions.group_override) || false,
+        vectorized: !!(e.extensions && e.extensions.vectorized),
+        outletName: (e.extensions && e.extensions.outlet_name) || '',
+        source:   e.source || 'import'
+      }, 'import');
     });
+    selectedWorldbookIndex = -1;
+    worldbookBrowseFilter = 'all';
+    updateWorldbookFilterUI();
+    setWorldbookEditorMeta(-1);
     renderEntriesList();
   }
   if (json.data.extensions && json.data.extensions.regex_scripts) {
@@ -361,12 +1302,26 @@ window.__setImportedAvatar__ = function(base64) {
           comment:  e.comment || '',
           content:  e.content || '',
           keys:     e.keys || [],
+          secondaryKeys: e.secondaryKeys || [],
           strategy: e.strategy || 'selective',
-          position: e.position || 4,
-          depth:    e.depth || 4,
-          role:     e.role || 0,
-          order:    e.order || 100,
-          prob:     e.prob || 100
+          position: safeInt(e.position, 4),
+          depth:    safeInt(e.depth, 4),
+          role:     safeInt(e.role, 0),
+          order:    safeInt(e.order, 100),
+          prob:     safeInt(e.prob, 100),
+          enabled:  e.enabled !== false,
+          useRegex: !!e.useRegex,
+          selectiveLogic: safeInt(e.selectiveLogic, 0),
+          group: e.group || '',
+          groupWeight: safeInt(e.groupWeight, 100),
+          useProbability: e.useProbability !== false,
+          excludeRecursion: !!e.excludeRecursion,
+          preventRecursion: !!e.preventRecursion,
+          delayUntilRecursion: !!e.delayUntilRecursion,
+          groupOverride: !!e.groupOverride,
+          vectorized: !!e.vectorized,
+          outletName: e.outletName || '',
+          source: e.source || 'manual'
         };
       });
     };
@@ -552,7 +1507,15 @@ window.__setImportedAvatar__ = function(base64) {
       charDesc.value     = d.charDesc     || '';
       firstMes.value     = d.firstMes     || '';
       creatorNotes.value = d.creatorNotes || '';
-      worldbookEntries   = d.worldbookEntries || [];
+      worldbookEntries   = Array.isArray(d.worldbookEntries)
+        ? d.worldbookEntries.map(function(entry) {
+            return normalizeWorldbookEntry(entry, entry && entry.source ? entry.source : 'manual');
+          })
+        : [];
+      selectedWorldbookIndex = -1;
+      worldbookBrowseFilter = 'all';
+      updateWorldbookFilterUI();
+      setWorldbookEditorMeta(-1);
       regexScripts       = d.regexScripts     || [];
       tavernHelperScripts = Array.isArray(d.tavernHelperScripts) ? d.tavernHelperScripts : [];
       currentAvatarBase64 = d.avatarBase64    || '';
@@ -605,6 +1568,10 @@ window.__setImportedAvatar__ = function(base64) {
       currentDraftId = genId();
       charName.value = ''; wbName.value = ''; charDesc.value = ''; firstMes.value = ''; creatorNotes.value = '';
       worldbookEntries = []; regexScripts = []; tavernHelperScripts = []; currentAvatarBase64 = ''; charImageInput.value = '';
+      selectedWorldbookIndex = -1;
+      worldbookBrowseFilter = 'all';
+      updateWorldbookFilterUI();
+      setWorldbookEditorMeta(-1);
       avatarImg.style.display = 'none'; avatarPlaceholder.style.display = 'block';
       window.__altGreetings__ = [];
       if (window.__renderAltGreetings__) window.__renderAltGreetings__();
@@ -696,6 +1663,51 @@ window.__setImportedAvatar__ = function(base64) {
       };
       reader.readAsText(file);
     });
+
+    function importWorldbookText(text, fallbackName) {
+      var payload = parseWorldbookImportJSON(text);
+      applyImportedWorldbook(payload, fallbackName);
+    }
+
+    if (worldbookImportStatus) {
+      showWorldbookImportStatus('等待导入', 'info');
+    }
+
+    if (btnWorldbookImportFile && worldbookImportInput) {
+      btnWorldbookImportFile.addEventListener('click', function() {
+        worldbookImportInput.value = '';
+        worldbookImportInput.click();
+      });
+    }
+
+    if (worldbookImportInput) {
+      worldbookImportInput.addEventListener('change', function(e) {
+        var file = e.target.files && e.target.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function(ev) {
+          try {
+            importWorldbookText(String(ev.target.result || ''), file.name.replace(/\.[^.]+$/, '') || file.name);
+          } catch (err) {
+            showWorldbookImportStatus('导入失败：' + err.message, 'error');
+          }
+        };
+        reader.onerror = function() {
+          showWorldbookImportStatus('导入失败：无法读取文件', 'error');
+        };
+        reader.readAsText(file);
+      });
+    }
+
+    if (btnWorldbookImportText && worldbookImportText) {
+      btnWorldbookImportText.addEventListener('click', function() {
+        try {
+          importWorldbookText(worldbookImportText.value || '', '粘贴导入世界书');
+        } catch (err) {
+          showWorldbookImportStatus('导入失败：' + err.message, 'error');
+        }
+      });
+    }
 
     // ============================================================
     //  工具函数
@@ -836,6 +1848,10 @@ window.__setImportedAvatar__ = function(base64) {
         window.__altGreetings__ = (charData.altGreetings && Array.isArray(charData.altGreetings)) ? charData.altGreetings : [];
         if (window.__renderAltGreetings__) window.__renderAltGreetings__();
         worldbookEntries = [];
+        selectedWorldbookIndex = -1;
+        worldbookBrowseFilter = 'ai';
+        updateWorldbookFilterUI();
+        setWorldbookEditorMeta(-1);
         debouncedUpdateAndSave();
         if (hacker) hacker.setDetail('✅ 角色「' + (charData.charName || '???') + '」锻造完成');
         await sleep(500);
@@ -872,7 +1888,18 @@ window.__setImportedAvatar__ = function(base64) {
             try { skeletons = extractJsonArray(rawC); } catch(pe) { try { skeletons = [extractJsonObj(rawC)]; } catch(e2) { throw new Error('返回格式异常'); } }
             skeletons.forEach(function(sk) {
               if (!sk || !sk.comment) return;
-              worldbookEntries.push({ comment: sk.comment || '未命名', content: sk.content || '(待展开)', keys: Array.isArray(sk.keys) ? sk.keys : [], strategy: sk.strategy || 'selective', position: 4, depth: 4, role: 0, order: 100, prob: 100 });
+              worldbookEntries.push(normalizeWorldbookEntry({
+                comment: sk.comment || '未命名',
+                content: sk.content || '(待展开)',
+                keys: Array.isArray(sk.keys) ? sk.keys : [],
+                strategy: sk.strategy || 'selective',
+                position: 4,
+                depth: 4,
+                role: 0,
+                order: 100,
+                prob: 100,
+                source: 'ai'
+              }, 'ai'));
             });
             renderEntriesList(); debouncedUpdateAndSave();
             if (hacker) hacker.setDetail('✅ 批次 ' + batchIndex + ' 完成，已 ' + worldbookEntries.length + ' 条');
@@ -929,7 +1956,20 @@ window.__setImportedAvatar__ = function(base64) {
       var res = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify({ model: model, messages: [{ role: "system", content: sysPrompt }, { role: "user", content: userPrompt }], temperature: 0.8 }) });
       if (!res.ok) throw new Error('请求失败 HTTP ' + res.status);
       var entry = extractJsonObj((await res.json()).choices[0].message.content);
-      worldbookEntries.push({ comment: entry.comment || '拓展设定', content: entry.content || '', keys: Array.isArray(entry.keys) ? entry.keys : [], strategy: entry.strategy || 'selective', position: parseInt(entry.position) || 4, depth: 4, role: 0, order: 100, prob: 100 });
+      worldbookEntries.push(normalizeWorldbookEntry({
+        comment: entry.comment || '拓展设定',
+        content: entry.content || '',
+        keys: Array.isArray(entry.keys) ? entry.keys : [],
+        strategy: entry.strategy || 'selective',
+        position: safeInt(entry.position, 4),
+        depth: 4,
+        role: 0,
+        order: 100,
+        prob: 100,
+        source: 'ai'
+      }, 'ai'));
+      worldbookBrowseFilter = 'ai';
+      updateWorldbookFilterUI();
     }
 
     btnAiSingleWb.addEventListener('click', async function() {
@@ -944,26 +1984,51 @@ window.__setImportedAvatar__ = function(base64) {
     //  世界书条目管理
     // ============================================================
     function resetWBForm() {
-      editingIndex = -1; entryComment.value = ''; entryContent.value = ''; entryKeys.value = '';
-      entryStrategy.value = 'selective'; entryPosition.value = '4'; entryDepth.value = '4';
-      entryRole.value = '0'; entryOrder.value = '100'; entryProb.value = '100';
-      btnAddEntry.textContent = '➕ 保存到列表'; btnAddEntry.style.backgroundColor = '#059669';
+      editingIndex = -1;
+      entryComment.value = '';
+      entryContent.value = '';
+      entryKeys.value = '';
+      entryStrategy.value = 'selective';
+      entryPosition.value = '4';
+      entryDepth.value = '4';
+      entryRole.value = '0';
+      entryOrder.value = '100';
+      entryProb.value = '100';
+      btnAddEntry.textContent = '➕ 保存到列表';
+      setWorldbookEditorMeta(-1);
+    }
+
+    function loadWorldbookEntryIntoEditor(index) {
+      if (index < 0 || index >= worldbookEntries.length) {
+        resetWBForm();
+        return false;
+      }
+      editingIndex = index;
+      selectedWorldbookIndex = index;
+      var e = worldbookEntries[index];
+      btnAddEntry.textContent = '💾 确认覆盖';
+      entryComment.value = e.comment || '';
+      entryContent.value = e.content || '';
+      entryKeys.value = (e.keys || []).join(', ');
+      entryStrategy.value = e.strategy || 'selective';
+      entryPosition.value = String(e.position !== undefined ? e.position : 4);
+      entryDepth.value = String(e.depth !== undefined ? e.depth : 4);
+      entryRole.value = String(e.role !== undefined ? e.role : 0);
+      entryOrder.value = String(e.order !== undefined ? e.order : 100);
+      entryProb.value = String(e.prob !== undefined ? e.prob : 100);
+      setWorldbookEditorMeta(index);
+      return true;
     }
 
     function editEntry(index) {
-      var entryEl = entriesList.children[index];
-      editingIndex = index; var e = worldbookEntries[index];
-      btnAddEntry.textContent = '💾 确认覆盖'; btnAddEntry.style.backgroundColor = '#d97706';
-      if (window.__flyToEditArea__ && entryEl && window.__flyToEditArea__(entryEl, e)) {
-        /* 动画模式：碎片飞入后打字浮现 */
-      } else {
-        /* 无动画回退：直接填入 */
-        entryComment.value = e.comment || ''; entryContent.value = e.content || '';
-        entryKeys.value = (e.keys || []).join(', '); entryStrategy.value = e.strategy || 'selective';
-        entryPosition.value = String(e.position || 4); entryDepth.value = String(e.depth || 4);
-        entryRole.value = String(e.role || 0); entryOrder.value = String(e.order || 100); entryProb.value = String(e.prob || 100);
+      if (index < 0 || index >= worldbookEntries.length) return;
+      selectedWorldbookIndex = index;
+      if (worldbookMode !== 'edit') {
+        setWorldbookMode('edit');
+        return;
       }
-      btnAddEntry.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      loadWorldbookEntryIntoEditor(index);
+      renderEntriesList();
     }
 
     async function aiRewriteEntry(index, req, btn) {
@@ -985,38 +2050,192 @@ window.__setImportedAvatar__ = function(base64) {
         var res = await fetch(url, { method: 'POST', headers: h, body: JSON.stringify({ model: model, messages: [{ role: "system", content: sys }, { role: "user", content: isSkeleton ? '将骨架展开为完整设定。' + (req ? ' 额外要求：' + req : '') : '修改要求：' + req }], temperature: 0.8 }) });
         if (!res.ok) throw new Error('HTTP ' + res.status);
         var ed = extractJsonObj((await res.json()).choices[0].message.content);
-        worldbookEntries[index].comment = ed.comment || old.comment;
-        worldbookEntries[index].content = ed.content || old.content;
-        if (ed.keys) worldbookEntries[index].keys = Array.isArray(ed.keys) ? ed.keys : [];
-        if (ed.strategy) worldbookEntries[index].strategy = ed.strategy;
+        worldbookEntries[index] = normalizeWorldbookEntry({
+          comment: ed.comment || old.comment,
+          content: ed.content || old.content,
+          keys: Array.isArray(ed.keys) ? ed.keys : old.keys,
+          strategy: ed.strategy || old.strategy,
+          position: safeInt(ed.position, old.position),
+          depth: old.depth,
+          role: old.role,
+          order: old.order,
+          prob: old.prob,
+          source: 'ai'
+        }, 'ai');
+        worldbookBrowseFilter = 'ai';
+        updateWorldbookFilterUI();
         renderEntriesList(); debouncedUpdateAndSave();
       } catch(err) { alert('重写失败: ' + err.message); }
       finally { btn.disabled = false; btn.textContent = oldText || '✨ AI重写'; }
     }
 
     function renderEntriesList() {
-      entriesList.innerHTML = worldbookEntries.length ? '' : '<span style="color:#475569;font-size:0.8rem;">暂无条目</span>';
+      updateWorldbookHeaderCounts();
+      updateWorldbookFilterUI();
+      setWorldbookEditorMeta(editingIndex);
+
+      if (worldbookMode === 'preview') {
+        if (entriesList) entriesList.hidden = true;
+        renderWorldbookPreview();
+        return;
+      }
+      if (entriesList) entriesList.hidden = false;
+
+      var visibleEntries = worldbookEntries
+        .map(function(entry, index) { return { entry: entry, index: index }; })
+        .filter(function(item) {
+          if (worldbookBrowseFilter === 'all') return true;
+          return (item.entry.source || 'manual') === worldbookBrowseFilter;
+        });
+
+      entriesList.innerHTML = '';
+
+      if (!visibleEntries.length) {
+        var emptyMessage = worldbookEntries.length
+          ? '当前筛选下没有条目，换个来源标签看看。'
+          : '暂无条目，先从左侧生成或手动添加一条。';
+        entriesList.innerHTML = '<div class="wb-entry-empty">' + emptyMessage + '</div>';
+        if (worldbookMode === 'preview') {
+          renderWorldbookPreview();
+        } else {
+          setPreviewCopyButtonsEnabled(false);
+        }
+        return;
+      }
+
       var posMap = ["0前","1后","2前EM","3后EM","4深度","5前AN","6后AN"];
-      worldbookEntries.forEach(function(entry, index) {
-        var isSk = entry.content.length < 60;
-        var skBadge = isSk ? '<span style="font-size:0.6rem;background:rgba(245,158,11,0.15);color:#f59e0b;padding:1px 6px;border-radius:99px;margin-left:6px;border:1px solid rgba(245,158,11,0.25);">🦴 骨架</span>' : '';
-        var div = document.createElement('div'); div.className = 'entry-item fade-in';
-        div.innerHTML = '<div class="entry-item-header"><div class="entry-info"><h4>' + (entry.comment || '未命名') + ' <span style="color:#8b5cf6;font-size:0.7rem;opacity:0.8;">[' + entry.strategy + ']</span>' + skBadge + '</h4><p>位置: ' + (posMap[entry.position] || entry.position) + ' | 顺序: ' + entry.order + ' | 深度: ' + entry.depth + ' | 概率: ' + entry.prob + '%</p><p>触发词: ' + ((entry.keys || []).join(', ') || '无') + '</p>' + (isSk ? '<p style="color:#f59e0b;font-size:0.7rem;margin-top:4px;">💡 点击「✨ AI重写」展开为完整设定</p>' : '') + '</div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;max-width:160px;"><button class="btn btn-edit" data-index="' + index + '" style="width:auto;padding:4px 8px;font-size:0.75rem;background-color:#3b82f6;">✏️ 编辑</button><button class="btn btn-toggle-reroll" data-index="' + index + '" style="width:auto;padding:4px 8px;font-size:0.75rem;background:linear-gradient(135deg,#8b5cf6,#6d28d9);">✨ AI重写</button><button class="btn btn-delete" data-index="' + index + '" style="width:auto;padding:4px 8px;font-size:0.75rem;">🗑️</button></div></div><div id="reroll_area_' + index + '" style="display:none;width:100%;margin-top:12px;padding-top:12px;border-top:1px dashed #334155;"><input type="text" id="reroll_prompt_' + index + '" placeholder="' + (isSk ? '可留空直接展开，或输入额外要求...' : '怎么修改？') + '" style="width:100%;padding:8px;margin-bottom:8px;" /><button class="btn btn-submit-reroll" data-index="' + index + '" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9);padding:8px;font-size:0.85rem;">' + (isSk ? '🦴→📖 展开为完整设定' : '🎲 确定覆盖重写') + '</button></div>';
+      visibleEntries.forEach(function(item) {
+        var entry = item.entry;
+        var index = item.index;
+        var isSk = (entry.content || '').length < 60;
+        var source = entry.source || 'manual';
+        var preview = (entry.content || '').replace(/\s+/g, ' ').trim();
+        if (preview.length > 120) preview = preview.slice(0, 120) + '…';
+        var keysText = (entry.keys || []).join('、') || '无触发词';
+        var sourceClass = getWorldbookSourceClass(source);
+        var sourceLabel = getWorldbookSourceLabel(source);
+        var skBadge = isSk ? '<span class="wb-source-pill wb-source-skeleton">骨架</span>' : '';
+        var safeComment = escapeHTML(entry.comment || '未命名');
+        var safePreview = escapeHTML(preview || '（空内容）');
+        var safeKeys = escapeHTML(keysText);
+        var safeMeta = '位置: ' + escapeHTML(posMap[entry.position] || String(entry.position)) + ' · 顺序: ' + escapeHTML(String(entry.order)) + ' · 深度: ' + escapeHTML(String(entry.depth)) + ' · 概率: ' + escapeHTML(String(entry.prob)) + '%';
+        var div = document.createElement('div');
+        div.className = 'wb-entry fade-in' + (selectedWorldbookIndex === index ? ' is-selected' : '');
+        div.setAttribute('data-worldbook-index', String(index));
+        div.innerHTML =
+          '<div class="wb-entry-body" data-worldbook-select="' + index + '">' +
+            '<div class="wb-entry-top">' +
+              '<div>' +
+                '<h4 class="wb-entry-title">' + safeComment + '</h4>' +
+                '<div class="wb-entry-meta">' + safeMeta + ' · <span class="wb-source-pill ' + sourceClass + '">' + sourceLabel + '</span>' + (isSk ? ' · <span class="wb-source-pill wb-source-skeleton">骨架</span>' : '') + '</div>' +
+              '</div>' +
+              '<div class="wb-entry-top-badges">' + skBadge + '</div>' +
+            '</div>' +
+            '<div class="wb-entry-preview">' + safePreview + '</div>' +
+            '<div class="wb-entry-keys">触发词：' + safeKeys + '</div>' +
+          '</div>' +
+          '<div class="wb-entry-actions">' +
+            '<button class="btn wb-btn-edit" type="button" data-worldbook-index="' + index + '">✏️ 编辑</button>' +
+            '<button class="btn wb-btn-reroll" type="button" data-worldbook-index="' + index + '">✨ AI重写</button>' +
+            '<button class="btn wb-btn-delete" type="button" data-worldbook-index="' + index + '">🗑️ 删除</button>' +
+          '</div>' +
+          '<div id="reroll_area_' + index + '" class="wb-reroll-area" style="display:none;">' +
+            '<input type="text" id="reroll_prompt_' + index + '" placeholder="' + (isSk ? '可留空直接展开，或输入额外要求...' : '怎么修改？') + '" />' +
+            '<button class="btn wb-btn-reroll-submit" type="button" data-worldbook-index="' + index + '">' + (isSk ? '🦴→📖 展开为完整设定' : '🎲 确定覆盖重写') + '</button>' +
+          '</div>';
         entriesList.appendChild(div);
       });
-      document.querySelectorAll('.btn-edit').forEach(function(b) { b.addEventListener('click', function(e) { editEntry(parseInt(e.currentTarget.getAttribute('data-index'))); }); });
-      document.querySelectorAll('.btn-toggle-reroll').forEach(function(b) { b.addEventListener('click', function(e) { var a = document.getElementById('reroll_area_' + e.currentTarget.getAttribute('data-index')); a.style.display = a.style.display === 'none' ? 'block' : 'none'; }); });
-      document.querySelectorAll('.btn-submit-reroll').forEach(function(b) { b.addEventListener('click', async function(e) { var idx = parseInt(e.currentTarget.getAttribute('data-index')); var req = document.getElementById('reroll_prompt_' + idx).value.trim(); var isSk = worldbookEntries[idx].content.length < 60; if (!isSk && !req) return alert('请填写修改要求！'); await aiRewriteEntry(idx, req, e.currentTarget); }); });
-      document.querySelectorAll('.btn-delete').forEach(function(b) { b.addEventListener('click', function(e) { var idx = parseInt(e.currentTarget.getAttribute('data-index')); worldbookEntries.splice(idx, 1); if (editingIndex === idx) resetWBForm(); renderEntriesList(); debouncedUpdateAndSave(); }); });
+
+      entriesList.querySelectorAll('[data-worldbook-select]').forEach(function(node) {
+        node.addEventListener('click', function(e) {
+          var idx = parseInt(e.currentTarget.getAttribute('data-worldbook-select'), 10);
+          if (isNaN(idx)) return;
+          if (worldbookMode === 'preview') {
+            selectedWorldbookIndex = idx;
+            renderEntriesList();
+            return;
+          }
+          editEntry(idx);
+        });
+      });
+
+      entriesList.querySelectorAll('.wb-btn-edit').forEach(function(b) {
+        b.addEventListener('click', function(e) {
+          e.stopPropagation();
+          editEntry(parseInt(e.currentTarget.getAttribute('data-worldbook-index'), 10));
+        });
+      });
+
+      entriesList.querySelectorAll('.wb-btn-reroll').forEach(function(b) {
+        b.addEventListener('click', function(e) {
+          e.stopPropagation();
+          var idx = parseInt(e.currentTarget.getAttribute('data-worldbook-index'), 10);
+          var a = document.getElementById('reroll_area_' + idx);
+          if (a) a.style.display = a.style.display === 'none' ? 'block' : 'none';
+        });
+      });
+
+      entriesList.querySelectorAll('.wb-btn-reroll-submit').forEach(function(b) {
+        b.addEventListener('click', async function(e) {
+          e.stopPropagation();
+          var idx = parseInt(e.currentTarget.getAttribute('data-worldbook-index'), 10);
+          var req = document.getElementById('reroll_prompt_' + idx).value.trim();
+          var isSk = worldbookEntries[idx].content.length < 60;
+          if (!isSk && !req) return alert('请填写修改要求！');
+          await aiRewriteEntry(idx, req, e.currentTarget);
+        });
+      });
+
+      entriesList.querySelectorAll('.wb-btn-delete').forEach(function(b) {
+        b.addEventListener('click', function(e) {
+          e.stopPropagation();
+          var idx = parseInt(e.currentTarget.getAttribute('data-worldbook-index'), 10);
+          worldbookEntries.splice(idx, 1);
+          if (editingIndex === idx) {
+            resetWBForm();
+          } else if (editingIndex > idx) {
+            editingIndex--;
+          }
+          if (selectedWorldbookIndex === idx) {
+            selectedWorldbookIndex = -1;
+          } else if (selectedWorldbookIndex > idx) {
+            selectedWorldbookIndex--;
+          }
+          renderEntriesList();
+          debouncedUpdateAndSave();
+        });
+      });
+      if (worldbookMode === 'preview') {
+        renderWorldbookPreview();
+      } else {
+        setPreviewCopyButtonsEnabled(false);
+      }
       // 通知审计官：世界书条目已变化
       window.dispatchEvent(new CustomEvent('worldbook-changed'));
     }
 
     btnAddEntry.addEventListener('click', function() {
       if (!entryContent.value.trim()) return alert('内容不能为空！');
-      var ne = { comment: entryComment.value.trim(), content: entryContent.value.trim(), keys: entryKeys.value.split(',').map(function(k) { return k.trim(); }).filter(function(k) { return k; }), strategy: entryStrategy.value, position: parseInt(entryPosition.value), depth: parseInt(entryDepth.value) || 4, role: parseInt(entryRole.value) || 0, order: parseInt(entryOrder.value) || 100, prob: parseInt(entryProb.value) || 100 };
+      var savedIndex = editingIndex >= 0 ? editingIndex : worldbookEntries.length;
+      var ne = normalizeWorldbookEntry({
+        comment: entryComment.value.trim(),
+        content: entryContent.value.trim(),
+        keys: entryKeys.value.split(',').map(function(k) { return k.trim(); }).filter(function(k) { return k; }),
+        strategy: entryStrategy.value,
+        position: safeInt(entryPosition.value, 4),
+        depth: safeInt(entryDepth.value, 4),
+        role: safeInt(entryRole.value, 0),
+        order: safeInt(entryOrder.value, 100),
+        prob: safeInt(entryProb.value, 100),
+        source: 'manual'
+      }, 'manual');
       if (editingIndex >= 0) worldbookEntries[editingIndex] = ne; else worldbookEntries.push(ne);
-      resetWBForm(); renderEntriesList(); debouncedUpdateAndSave();
+      selectedWorldbookIndex = savedIndex;
+      worldbookBrowseFilter = 'manual';
+      updateWorldbookFilterUI();
+      resetWBForm();
+      renderEntriesList();
+      debouncedUpdateAndSave();
     });
 
     // ============================================================
@@ -1138,7 +2357,36 @@ window.__setImportedAvatar__ = function(base64) {
     // ============================================================
     function generateFullJSON() {
       var fe = worldbookEntries.map(function(e, i) {
-        return { id: i, keys: e.keys || [], secondary_keys: [], comment: e.comment, content: e.content, constant: e.strategy === 'constant', selective: e.strategy === 'selective' || e.strategy === 'vectorized', insertion_order: e.order || 100, enabled: true, position: "before_char", use_regex: false, extensions: { position: e.position, exclude_recursion: false, display_index: i, probability: e.prob || 100, useProbability: true, depth: e.depth || 4, selectiveLogic: 0, outlet_name: "", group: "", group_override: false, group_weight: 100, prevent_recursion: false, delay_until_recursion: false, role: e.role || 0, vectorized: e.strategy === 'vectorized' } };
+        return {
+          id: i,
+          keys: e.keys || [],
+          secondary_keys: e.secondaryKeys || [],
+          comment: e.comment,
+          content: e.content,
+          constant: e.strategy === 'constant',
+          selective: e.strategy === 'selective' || e.strategy === 'vectorized',
+          insertion_order: safeInt(e.order, 100),
+          enabled: e.enabled !== false,
+          position: "before_char",
+          use_regex: !!e.useRegex,
+          extensions: {
+            position: safeInt(e.position, 4),
+            exclude_recursion: !!e.excludeRecursion,
+            display_index: i,
+            probability: safeInt(e.prob, 100),
+            useProbability: e.useProbability !== false,
+            depth: safeInt(e.depth, 4),
+            selectiveLogic: safeInt(e.selectiveLogic, 0),
+            outlet_name: e.outletName || "",
+            group: e.group || "",
+            group_override: !!e.groupOverride,
+            group_weight: safeInt(e.groupWeight, 100),
+            prevent_recursion: !!e.preventRecursion,
+            delay_until_recursion: !!e.delayUntilRecursion,
+            role: safeInt(e.role, 0),
+            vectorized: e.strategy === 'vectorized' || !!e.vectorized
+          }
+        };
       });
       var cn  = charName.value.trim() || "无名角色";
       var wn  = wbName.value.trim()   || "无名世界书";
@@ -1174,6 +2422,14 @@ window.__setImportedAvatar__ = function(base64) {
 
     // ★ 初始化顺序很重要：先加载 AI 配置（含预设），再加载草稿
     loadAIConfig();
+
+    var initialWorldbookMode = 'edit';
+    try {
+      var storedWorldbookMode = localStorage.getItem(WB_MODE_KEY);
+      if (storedWorldbookMode === 'preview' || storedWorldbookMode === 'edit') {
+        initialWorldbookMode = storedWorldbookMode;
+      }
+    } catch (err) {}
 
     // ★ Supabase 访客计数器
     (function initVisitorCounter() {
@@ -1217,6 +2473,7 @@ window.__setImportedAvatar__ = function(base64) {
     if (lastId && drafts[lastId]) loadDraft(lastId);
     else if (Object.keys(drafts).length > 0) loadDraft(Object.keys(drafts)[0]);
     else btnNewDraft.click();
+    setWorldbookMode(initialWorldbookMode, true);
 
   </script>
 </Layout>
