@@ -537,9 +537,11 @@ import WorldbookPanel from '../components/WorldbookPanel.astro';
     function extractWorldbookImportJSON(text) {
       var raw = String(text || '').replace(/^\uFEFF/, '').trim();
       if (!raw) return '';
-      var fence = raw.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
-      if (fence && fence[1]) {
-        raw = fence[1].trim();
+      if (raw[0] !== '{' && raw[0] !== '[') {
+        var fence = raw.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+        if (fence && fence[1]) {
+          raw = fence[1].trim();
+        }
       }
       return raw;
     }
@@ -547,7 +549,41 @@ import WorldbookPanel from '../components/WorldbookPanel.astro';
     function parseWorldbookImportJSON(text) {
       var raw = extractWorldbookImportJSON(text);
       if (!raw) throw new Error('导入内容为空');
-      return JSON.parse(raw);
+      function findJsonBounds(text, openChar, closeChar) {
+        var start = text.indexOf(openChar);
+        if (start < 0) return null;
+        var depth = 0;
+        var inString = false;
+        var escaped = false;
+        for (var i = start; i < text.length; i++) {
+          var ch = text[i];
+          if (escaped) {
+            escaped = false;
+            continue;
+          }
+          if (ch === '\\') {
+            escaped = true;
+            continue;
+          }
+          if (ch === '"') {
+            inString = !inString;
+            continue;
+          }
+          if (inString) continue;
+          if (ch === openChar) depth++;
+          if (ch === closeChar) {
+            depth--;
+            if (depth === 0) return [start, i + 1];
+          }
+        }
+        return null;
+      }
+
+      var bounds = findJsonBounds(raw, '{', '}') || findJsonBounds(raw, '[', ']');
+      if (bounds) {
+        return JSON.parse(raw.slice(bounds[0], bounds[1]));
+      }
+      throw new Error('未找到可解析的 JSON 片段');
     }
 
     function getWorldbookImportName(payload, fallbackName) {
@@ -780,6 +816,7 @@ import WorldbookPanel from '../components/WorldbookPanel.astro';
 
     function isCharacterCardPayload(json) {
       if (!json || typeof json !== 'object') return false;
+      if (isPureWorldbookPayload(json)) return false;
       if (json.spec === 'chara_card_v3') return true;
       if (json.data && typeof json.data === 'object') {
         if (json.data.character_book || json.data.first_mes !== undefined || json.data.creator_notes !== undefined || json.data.mes_example !== undefined) {
@@ -807,6 +844,29 @@ import WorldbookPanel from '../components/WorldbookPanel.astro';
           root.creator !== undefined ||
           root.character_version !== undefined
         )
+      );
+    }
+
+    function isPureWorldbookPayload(json) {
+      if (!json || typeof json !== 'object') return false;
+      if (!json.entries) return false;
+
+      var root = json.data && typeof json.data === 'object' ? json.data : json;
+      if (!root || typeof root !== 'object') return false;
+
+      return !(
+        root.first_mes !== undefined ||
+        root.creator_notes !== undefined ||
+        root.mes_example !== undefined ||
+        root.alternate_greetings !== undefined ||
+        root.character_book !== undefined ||
+        root.nickname !== undefined ||
+        root.gender !== undefined ||
+        root.statusBlockConfig !== undefined ||
+        root.personality !== undefined ||
+        root.scenario !== undefined ||
+        root.creator !== undefined ||
+        root.character_version !== undefined
       );
     }
 
@@ -1738,6 +1798,10 @@ window.__setImportedAvatar__ = function(src, skipCommit, exportBase64) {
 
     function importCardOrWorldbookText(text, fallbackName) {
       var payload = parseWorldbookImportJSON(text);
+      if (isPureWorldbookPayload(payload)) {
+        applyImportedWorldbook(payload, fallbackName);
+        return;
+      }
       if (isCharacterCardPayload(payload)) {
         applyJSONFromEditor(payload);
         var card = normalizeImportedCharacterCard(payload);
@@ -2240,79 +2304,21 @@ window.__setImportedAvatar__ = function(src, skipCommit, exportBase64) {
         var isConstant = e.strategy === 'constant';
         var isSelective = isConstant ? false : (keys.length > 0 || e.strategy === 'selective' || e.strategy === 'vectorized' || !!e.vectorized);
         var enabled = e.disable !== true && e.enabled !== false;
-        var ext = {
-          position: safeInt(e.position, 4),
-          exclude_recursion: !!e.excludeRecursion,
-          display_index: safeInt(e.displayIndex, i),
-          probability: safeInt(e.prob, 100),
-          useProbability: e.useProbability !== false,
-          depth: safeInt(e.depth, 4),
-          selectiveLogic: safeInt(e.selectiveLogic, 0),
-          group: e.group || '',
-          group_override: !!e.groupOverride,
-          group_weight: safeInt(e.groupWeight, 100),
-          prevent_recursion: !!e.preventRecursion,
-          delay_until_recursion: !!e.delayUntilRecursion,
-          scan_depth: null,
-          match_whole_words: e.matchWholeWords !== undefined ? !!e.matchWholeWords : null,
-          use_group_scoring: e.useGroupScoring !== undefined ? !!e.useGroupScoring : null,
-          case_sensitive: e.caseSensitive !== undefined ? !!e.caseSensitive : null,
-          automation_id: e.automationId || '',
-          role: safeInt(e.role, 0),
-          vectorized: !!e.vectorized,
-          sticky: safeInt(e.sticky, 0),
-          cooldown: safeInt(e.cooldown, 0),
-          delay: safeInt(e.delay, 0)
-        };
-        if (e.outletName) ext.outlet_name = e.outletName;
-
         return {
-          uid: i,
           keys: keys,
           secondary_keys: secondaryKeys,
           comment: comment,
           content: content,
-          constant: isConstant,
-          vectorized: !!e.vectorized,
-          selective: isSelective,
-          selectiveLogic: safeInt(e.selectiveLogic, 0),
-          addMemo: !!e.addMemo,
-          order: safeInt(e.order, 100),
-          position: safeInt(e.position, 4),
-          disable: !enabled,
-          ignoreBudget: !!e.ignoreBudget,
-          matchPersonaDescription: !!e.matchPersonaDescription,
-          matchCharacterDescription: !!e.matchCharacterDescription,
-          matchCharacterPersonality: !!e.matchCharacterPersonality,
-          matchCharacterDepthPrompt: !!e.matchCharacterDepthPrompt,
-          matchScenario: !!e.matchScenario,
-          matchCreatorNotes: !!e.matchCreatorNotes,
-          delayUntilRecursion: !!e.delayUntilRecursion,
-          probability: safeInt(e.prob, 100),
-          useProbability: e.useProbability !== false,
-          depth: safeInt(e.depth, 4),
-          outletName: e.outletName || '',
-          group: e.group || '',
-          groupOverride: !!e.groupOverride,
-          groupWeight: safeInt(e.groupWeight, 100),
-          scanDepth: null,
-          caseSensitive: e.caseSensitive !== undefined ? !!e.caseSensitive : null,
-          matchWholeWords: e.matchWholeWords !== undefined ? !!e.matchWholeWords : null,
-          useGroupScoring: e.useGroupScoring !== undefined ? !!e.useGroupScoring : null,
-          automationId: e.automationId || '',
-          role: safeInt(e.role, 0),
-          sticky: safeInt(e.sticky, 0),
-          cooldown: safeInt(e.cooldown, 0),
-          delay: safeInt(e.delay, 0),
-          triggers: Array.isArray(e.triggers) ? e.triggers.slice() : [],
-          displayIndex: safeInt(e.displayIndex, i),
+          extensions: {},
+          enabled: enabled,
           insertion_order: safeInt(e.order, 100),
           case_sensitive: e.caseSensitive !== undefined ? !!e.caseSensitive : false,
           name: comment,
           priority: safeInt(e.prob, 100),
           id: i,
-          enabled: enabled,
-          extensions: ext
+          selective: isSelective,
+          constant: isConstant,
+          position: safeInt(e.position, 4)
         };
       });
     }
@@ -2390,7 +2396,6 @@ window.__setImportedAvatar__ = function(src, skipCommit, exportBase64) {
           meta[key] = window.__importedCardMeta__[key];
         });
       }
-      var tags = Array.isArray(meta.tags) ? meta.tags.slice() : [];
       return {
         name: cn,
         description: charDesc.value || '',
@@ -2401,15 +2406,16 @@ window.__setImportedAvatar__ = function(src, skipCommit, exportBase64) {
         creator_notes: creatorNotes.value || '',
         alternate_greetings: altG,
         character_book: buildExportCharacterBook(),
-        tags: tags,
+        tags: Array.isArray(meta.tags) ? meta.tags.slice() : [],
         creator: meta.creator || '',
         character_version: meta.characterVersion || '1.0.0',
         nickname: meta.nickname || cn || '',
         gender: meta.gender || 'N/A',
         statusBlockConfig: meta.statusBlockConfig || {
-          description: ''
-        },
-        presetStatusBlock: meta.presetStatusBlock || ''
+          description: '',
+          properties: {},
+          required: []
+        }
       };
     }
 
