@@ -1,0 +1,36 @@
+---
+interface Props {
+  title: string;
+}
+const { title } = Astro.props;
+---
+
+<div class="app-header">
+  <div class="app-brand">
+    <span class="app-logo">
+      <svg class="logo-icon" viewBox="0 -1 24 26" width="22" height="22" fill="none">
+        <g transform="translate(0, 0)">
+          <path d="M12 2L14.09 8.26L20 9.27L15.55 13.97L16.91 20L12 16.9L7.09 20L8.45 13.97L4 9.27L9.91 8.26L12 2Z" fill="url(#logoGrad)" stroke="url(#logoStroke)" stroke-width="0.8" />
+          <path class="logo-spark" d="M12 2L14.09 8.26L20 9.27L15.55 13.97L16.91 20L12 16.9L7.09 20L8.45 13.97L4 9.27L9.91 8.26L12 2Z" fill="none" stroke="rgba(165,243,252,0.6)" stroke-width="0.6" />
+          <defs>
+            <linearGradient id="logoGrad" x1="4" y1="2" x2="20" y2="20">
+              <stop offset="0%" stop-color="#a78bfa" />
+              <stop offset="50%" stop-color="#6366f1" />
+              <stop offset="100%" stop-color="#38bdf8" />
+            </linearGradient>
+            <linearGradient id="logoStroke" x1="4" y1="2" x2="20" y2="20">
+              <stop offset="0%" stop-color="#c4b5fd" />
+              <stop offset="100%" stop-color="#67e8f9" />
+            </linearGradient>
+          </defs>
+        </g>
+      </svg>
+    </span>
+    <div>
+      <h1 class="app-title">{title}</h1>
+    </div>
+  </div>
+  <div class="app-header-actions">
+    <button id="themeToggle" class="theme-toggle" type="button" aria-pressed="false">🌙 深色</button>
+  </div>
+</div>

@@ -1,0 +1,262 @@
+/* ========== 浅色主题覆盖 ========== */
+/* 作用于 body 及其子元素，不限定 data-theme 选择器 */
+/* 因为 dark 是默认主题，light 主题通过 tokens.css 的 :root 变量 + 这里额外的覆盖实现 */
+
+body {
+  background:
+    radial-gradient(circle at top left, rgba(67, 97, 238, 0.06), transparent 28%),
+    radial-gradient(circle at top right, rgba(15, 118, 110, 0.05), transparent 26%),
+    linear-gradient(180deg, var(--page-bg-2), var(--page-bg));
+  color: var(--text);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.app-header,
+.workspace-nav,
+.panel,
+.code-window,
+.draft-manager,
+.preset-upload,
+.chat-settings-bar,
+.chat-controls,
+.chat-messages,
+.chat-input-area,
+.wb-organize-wrap,
+.organize-preview-container,
+.audit-score-card,
+.audit-section,
+.dim-card,
+.issue-item,
+.suggestion-card,
+.preset-item,
+.entry-item,
+.theme-toggle,
+.btn,
+.btn-alt-add,
+.btn-alt-action,
+.btn-chat-ctrl,
+.btn-chat-start,
+.btn-chat-send,
+.app-version-badge,
+.chat-indicator,
+.btn-organize-magic {
+  box-shadow: none !important;
+}
+
+.app-header,
+.workspace-nav,
+.panel,
+.code-window,
+.draft-manager,
+.preset-upload,
+.chat-settings-bar,
+.chat-controls,
+.chat-messages,
+.chat-input-area,
+.wb-organize-wrap,
+.organize-preview-container,
+.audit-score-card,
+.audit-section,
+.dim-card,
+.issue-item,
+.suggestion-card,
+.preset-item,
+.entry-item {
+  background: var(--surface-strong) !important;
+  border-color: var(--border) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.app-header {
+  border-radius: 18px;
+  padding: 14px 18px;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.app-header::before {
+  display: none !important;
+}
+
+.app-title,
+.workspace-section-title,
+.panel h2,
+.panel h3,
+.theme-toggle {
+  color: var(--text) !important;
+  background: none !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+
+.app-subtitle,
+.workspace-section-desc,
+.panel p,
+.audit-status,
+.organize-stats,
+.score-summary,
+.chat-empty-hint,
+.alt-greetings-tip,
+.auditor-desc,
+.wb-hint,
+.wb-entry-meta,
+.wb-entry-preview,
+.wb-entry-keys,
+.wb-editor-desc,
+.wb-mini-hint,
+.wb-status,
+.preset-status,
+.organize-subtitle,
+.organize-stats,
+.score-summary,
+.chat-setting-helper,
+.chat-setting-hint,
+.audit-section .score-summary {
+  color: var(--muted) !important;
+}
+
+.app-header-actions {
+  gap: 8px;
+}
+
+.workspace-nav {
+  gap: 6px;
+  padding: 8px;
+  border-radius: 999px;
+  position: sticky;
+  top: 14px;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.workspace-tab,
+.theme-toggle,
+.btn,
+.btn-alt-add,
+.btn-alt-action,
+.btn-chat-ctrl,
+.btn-chat-start,
+.btn-chat-send,
+.app-version-badge,
+.chat-indicator {
+  border-radius: 999px !important;
+  border: 1px solid var(--border) !important;
+  background: var(--surface-2) !important;
+  color: var(--text) !important;
+}
+
+.workspace-tab[aria-selected='true'],
+.wb-filter-pill.is-active,
+.btn-add,
+.btn-ai,
+.btn-fetch,
+.btn-organize-magic,
+.btn-chat-start,
+.btn-chat-send,
+.btn-audit-run,
+.btn-org-apply {
+  background: var(--accent) !important;
+  color: #fff !important;
+  border-color: transparent !important;
+}
+
+.theme-toggle {
+  padding: 8px 12px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.theme-toggle:hover {
+  border-color: var(--border-strong) !important;
+  background: var(--surface-3) !important;
+}
+
+.panel {
+  border-radius: 18px;
+  padding: 18px;
+  max-height: calc(100vh - 40px);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.panel h2 {
+  border-bottom-color: var(--border) !important;
+}
+
+input[type='text'],
+input[type='password'],
+input[type='number'],
+textarea,
+select {
+  background: var(--surface-2) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text) !important;
+  border-radius: 12px;
+  box-shadow: none !important;
+}
+input[type='text']:focus,
+input[type='password']:focus,
+input[type='number']:focus,
+textarea:focus,
+select:focus {
+  outline: 2px solid var(--accent-soft);
+  outline-offset: 1px;
+  border-color: var(--border-strong) !important;
+  box-shadow: none !important;
+}
+
+.cs-trigger,
+.cs-dropdown {
+  background: var(--surface-2) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+  box-shadow: none !important;
+}
+
+.cs-option {
+  color: var(--text) !important;
+}
+.cs-option:hover,
+.cs-option.cs-selected {
+  background: var(--accent-soft) !important;
+  color: var(--text) !important;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--accent), var(--accent-2)) !important;
+  box-shadow: none !important;
+}
+
+.btn:hover,
+.workspace-tab:hover,
+.btn-chat-ctrl:hover,
+.btn-alt-action:hover,
+.btn-alt-add:hover,
+.theme-toggle:hover,
+.wb-filter-pill:hover {
+  border-color: var(--border-strong) !important;
+  background: var(--surface-3) !important;
+  color: var(--text) !important;
+}
+
+.workspace-section-title,
+.panel h2,
+.panel h3,
+.app-title {
+  letter-spacing: 0.01em;
+}
+
+.btn,
+.workspace-tab,
+.theme-toggle,
+.chat-indicator,
+.app-version-badge {
+  padding-left: 14px;
+  padding-right: 14px;
+}
+
+.code-window,
+.chat-messages {
+  overflow: hidden;
+}

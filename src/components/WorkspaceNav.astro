@@ -1,0 +1,20 @@
+---
+interface Props {
+  tabs: { target: string; label: string; selected?: boolean }[];
+}
+const { tabs } = Astro.props;
+---
+
+<nav class="workspace-nav" role="tablist" aria-label="工作区导航">
+  {tabs.map((tab) => (
+    <button
+      class="workspace-tab"
+      type="button"
+      role="tab"
+      aria-selected={String(!!tab.selected)}
+      data-workspace-target={tab.target}
+    >
+      {tab.label}
+    </button>
+  ))}
+</nav>

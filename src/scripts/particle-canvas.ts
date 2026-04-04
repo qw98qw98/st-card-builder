@@ -1,0 +1,171 @@
+/**
+ * Full-screen particle background canvas.
+ *
+ * Creates an animated particle system on `#particleCanvas` with
+ * mouse interaction and connection lines. Respects the `st_v3_fx_enabled`
+ * localStorage preference.
+ */
+export function initParticleCanvas(): void {
+  var canvas = document.getElementById('particleCanvas') as HTMLCanvasElement | null;
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  var dpr = Math.min(window.devicePixelRatio || 1, 2);
+  var W = 0, H = 0;
+  var particles: any[] = [];
+  var mouse = { x: -9999, y: -9999 };
+  var PARTICLE_COUNT = 45;
+  var CONNECTION_DIST = 130;
+  var MOUSE_DIST = 180;
+  var rafId: number | null = null;
+  var running = false;
+
+  var COLORS = [
+    { r: 139, g: 92, b: 246 },
+    { r: 56, g: 189, b: 248 },
+    { r: 16, g: 185, b: 129 },
+    { r: 245, g: 158, b: 11 },
+    { r: 244, g: 114, b: 182 },
+  ];
+
+  function resize() {
+    W = window.innerWidth;
+    H = window.innerHeight;
+    canvas!.width = W * dpr;
+    canvas!.height = H * dpr;
+    canvas!.style.width = W + 'px';
+    canvas!.style.height = H + 'px';
+    ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function createParticle() {
+    var c = COLORS[Math.floor(Math.random() * COLORS.length)];
+    return {
+      x: Math.random() * W, y: Math.random() * H,
+      vx: (Math.random() - 0.5) * 0.35, vy: (Math.random() - 0.5) * 0.35,
+      r: Math.random() * 2 + 0.8, color: c,
+      alpha: Math.random() * 0.5 + 0.2,
+      pulseSpeed: Math.random() * 0.02 + 0.005,
+      pulseOffset: Math.random() * Math.PI * 2,
+      _fill: 'rgb(' + c.r + ',' + c.g + ',' + c.b + ')',
+      _fillOuter: 'rgb(' + c.r + ',' + c.g + ',' + c.b + ')',
+      _lineColor: 'rgb(' + c.r + ',' + c.g + ',' + c.b + ')',
+    };
+  }
+
+  function init() {
+    resize();
+    particles = [];
+    for (var i = 0; i < PARTICLE_COUNT; i++) particles.push(createParticle());
+  }
+
+  var frame = 0;
+  var CONNECTION_DIST_SQ = CONNECTION_DIST * CONNECTION_DIST;
+  var MOUSE_DIST_SQ = MOUSE_DIST * MOUSE_DIST;
+
+  function animate() {
+    if (!running) return;
+    frame++;
+    ctx!.clearRect(0, 0, W, H);
+
+    for (var i = 0; i < particles.length; i++) {
+      var p = particles[i];
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < -10) p.x = W + 10; if (p.x > W + 10) p.x = -10;
+      if (p.y < -10) p.y = H + 10; if (p.y > H + 10) p.y = -10;
+
+      var dx = p.x - mouse.x, dy = p.y - mouse.y;
+      var distSq = dx * dx + dy * dy;
+      if (distSq < MOUSE_DIST_SQ && distSq > 0) {
+        var dist = Math.sqrt(distSq);
+        var force = (MOUSE_DIST - dist) / MOUSE_DIST * 0.008;
+        p.vx += (dx / dist) * force; p.vy += (dy / dist) * force;
+      }
+      p.vx *= 0.999; p.vy *= 0.999;
+
+      var pulse = Math.sin(frame * p.pulseSpeed + p.pulseOffset) * 0.3 + 0.7;
+      var alpha = p.alpha * pulse;
+
+      ctx!.globalAlpha = alpha * 0.15;
+      ctx!.fillStyle = p._fillOuter;
+      ctx!.beginPath();
+      ctx!.arc(p.x, p.y, p.r * 4, 0, Math.PI * 2);
+      ctx!.fill();
+
+      ctx!.globalAlpha = alpha;
+      ctx!.fillStyle = p._fill;
+      ctx!.beginPath();
+      ctx!.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx!.fill();
+      ctx!.globalAlpha = 1;
+    }
+
+    for (var i = 0; i < particles.length; i++) {
+      for (var j = i + 1; j < particles.length; j++) {
+        var a = particles[i], b = particles[j];
+        var ddx = a.x - b.x, ddy = a.y - b.y;
+        var dSq = ddx * ddx + ddy * ddy;
+        if (dSq < CONNECTION_DIST_SQ) {
+          var d = Math.sqrt(dSq);
+          var lineAlpha = (1 - d / CONNECTION_DIST) * 0.12;
+          ctx!.beginPath(); ctx!.moveTo(a.x, a.y); ctx!.lineTo(b.x, b.y);
+          ctx!.strokeStyle = a._lineColor;
+          ctx!.globalAlpha = lineAlpha;
+          ctx!.lineWidth = 0.6; ctx!.stroke();
+        }
+      }
+    }
+    ctx!.globalAlpha = 1;
+
+    if (mouse.x > 0 && mouse.y > 0) {
+      var mGrad = ctx!.createRadialGradient(mouse.x, mouse.y, 0, mouse.x, mouse.y, 120);
+      mGrad.addColorStop(0, 'rgba(139,92,246,0.04)');
+      mGrad.addColorStop(0.5, 'rgba(56,189,248,0.02)');
+      mGrad.addColorStop(1, 'transparent');
+      ctx!.fillStyle = mGrad;
+      ctx!.fillRect(mouse.x - 120, mouse.y - 120, 240, 240);
+    }
+
+    rafId = requestAnimationFrame(animate);
+  }
+
+  // Start/stop control
+  function start() {
+    if (running) return;
+    running = true;
+    canvas!.style.display = '';
+    animate();
+  }
+
+  function stop() {
+    running = false;
+    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+    ctx!.clearRect(0, 0, W, H);
+    canvas!.style.display = 'none';
+  }
+
+  window.addEventListener('resize', resize);
+  var _mouseMoveRAF = 0;
+  document.addEventListener('mousemove', function (e) {
+    if (_mouseMoveRAF) return;
+    _mouseMoveRAF = requestAnimationFrame(function () {
+      mouse.x = e.clientX; mouse.y = e.clientY;
+      _mouseMoveRAF = 0;
+    });
+  });
+  document.addEventListener('mouseleave', function () { mouse.x = -9999; mouse.y = -9999; });
+
+  init();
+
+  // Read preference to decide whether to start
+  var FX_KEY = 'st_v3_fx_enabled';
+  var shouldRun = true;
+  try { var s = localStorage.getItem(FX_KEY); if (s !== null) shouldRun = s === '1'; } catch (e) {}
+
+  if (shouldRun) {
+    start();
+    if ((window as any).gsap) (window as any).gsap.to(canvas, { opacity: 1, duration: 2, ease: 'power2.out', delay: 0.3 });
+    else canvas.style.opacity = '1';
+  }
+}

@@ -64,40 +64,7 @@
 
 </style>
 
-<script is:inline>
-(function () {
-  const sbDescription = document.getElementById('sbDescription');
-  const sbPresetStatusBlock = document.getElementById('sbPresetStatusBlock');
-
-  function updateStatePreview() {
-    if (!sbPresetStatusBlock) return;
-    sbPresetStatusBlock.value = String(sbPresetStatusBlock.value || '');
-  }
-
-  function loadState(data) {
-    if (!data) {
-      sbDescription.value = '📅 寒假第{X}天 · 📍 {地点}\n\n🧩 角色状态设定：';
-      sbPresetStatusBlock.value = '📅 寒假第1天 · 📍 酒店1207房间\n\n填写首条状态块内容';
-      updateStatePreview();
-      return;
-    }
-    if (data.description !== undefined) sbDescription.value = data.description;
-    if (data.presetStatusBlock !== undefined) sbPresetStatusBlock.value = data.presetStatusBlock;
-    if (data.title !== undefined && data.presetStatusBlock === undefined) sbPresetStatusBlock.value = data.title;
-    updateStatePreview();
-  }
-
-  sbDescription.addEventListener('input', updateStatePreview);
-
-  window.__getStatusBarData__ = function() {
-    return {
-      description: sbDescription.value,
-      presetStatusBlock: sbPresetStatusBlock.value,
-    };
-  };
-
-  window.__loadStatusBarData__ = loadState;
-  renderFieldList();
-  updateStatePreview();
-})();
+<script>
+  import { initStatusBar } from '../scripts/status-bar';
+  initStatusBar();
 </script>

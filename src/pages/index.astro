@@ -1,45 +1,19 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import AppHeader from '../components/AppHeader.astro';
+import WorkspaceNav from '../components/WorkspaceNav.astro';
 import ImportExportCenter from '../components/ImportExportCenter.astro';
 import CharacterPanel from '../components/CharacterPanel.astro';
 import WorldbookPanel from '../components/WorldbookPanel.astro';
 ---
 
 <Layout title="然然工坊">
-  <div class="app-header">
-    <div class="app-brand">
-      <span class="app-logo">
-        <svg class="logo-icon" viewBox="0 -1 24 26" width="22" height="22" fill="none">
-          <g transform="translate(0, 0)">
-          <path d="M12 2L14.09 8.26L20 9.27L15.55 13.97L16.91 20L12 16.9L7.09 20L8.45 13.97L4 9.27L9.91 8.26L12 2Z" fill="url(#logoGrad)" stroke="url(#logoStroke)" stroke-width="0.8" />
-          <path class="logo-spark" d="M12 2L14.09 8.26L20 9.27L15.55 13.97L16.91 20L12 16.9L7.09 20L8.45 13.97L4 9.27L9.91 8.26L12 2Z" fill="none" stroke="rgba(165,243,252,0.6)" stroke-width="0.6" />
-          <defs>
-            <linearGradient id="logoGrad" x1="4" y1="2" x2="20" y2="20">
-              <stop offset="0%" stop-color="#a78bfa" />
-              <stop offset="50%" stop-color="#6366f1" />
-              <stop offset="100%" stop-color="#38bdf8" />
-            </linearGradient>
-            <linearGradient id="logoStroke" x1="4" y1="2" x2="20" y2="20">
-              <stop offset="0%" stop-color="#c4b5fd" />
-              <stop offset="100%" stop-color="#67e8f9" />
-            </linearGradient>
-          </defs>
-          </g>
-        </svg>
-      </span>
-      <div>
-        <h1 class="app-title">然然工坊</h1>
-      </div>
-    </div>
-    <div class="app-header-actions">
-      <button id="themeToggle" class="theme-toggle" type="button" aria-pressed="false">🌙 深色</button>
-    </div>
-  </div>
+  <AppHeader title="然然工坊" />
 
-  <nav class="workspace-nav" role="tablist" aria-label="工作区导航">
-    <button class="workspace-tab" type="button" role="tab" aria-selected="true" data-workspace-target="core">核心设置</button>
-    <button class="workspace-tab" type="button" role="tab" aria-selected="false" data-workspace-target="worldbook">世界书</button>
-  </nav>
+  <WorkspaceNav tabs={[
+    { target: 'core', label: '核心设置', selected: true },
+    { target: 'worldbook', label: '世界书' },
+  ]} />
 
   <div class="app-container">
     <section class="workspace-section" data-workspace-section="core">
@@ -67,156 +41,52 @@ import WorldbookPanel from '../components/WorldbookPanel.astro';
     </section>
   </div>
 
-  <script is:inline>
-    (function () {
-      var STORAGE_KEY = 'st_v3_workspace_tab';
-      var sections = Array.prototype.slice.call(document.querySelectorAll('[data-workspace-section]'));
-      var tabs = Array.prototype.slice.call(document.querySelectorAll('[data-workspace-target]'));
-
-      function activate(name, skipStore) {
-        sections.forEach(function (section) {
-          var active = section.getAttribute('data-workspace-section') === name;
-          section.hidden = !active;
-          section.setAttribute('aria-hidden', active ? 'false' : 'true');
-        });
-
-        tabs.forEach(function (tab) {
-          var active = tab.getAttribute('data-workspace-target') === name;
-          tab.setAttribute('aria-selected', active ? 'true' : 'false');
-        });
-
-        if (!skipStore) {
-          try { localStorage.setItem(STORAGE_KEY, name); } catch (err) {}
-        }
-
-        window.scrollTo({ top: 0, behavior: 'auto' });
-      }
-
-      var initial = 'core';
-      try {
-        var saved = localStorage.getItem(STORAGE_KEY);
-        if (saved && document.querySelector('[data-workspace-section="' + saved + '"]')) {
-          initial = saved;
-        }
-      } catch (err) {}
-
-      tabs.forEach(function (tab) {
-        tab.addEventListener('click', function () {
-          activate(tab.getAttribute('data-workspace-target'));
-        });
-      });
-
-      activate(initial, true);
-    })();
+  <script>
+    import { initWorkspaceTabs } from '../scripts/workspace-tabs';
+    initWorkspaceTabs();
   </script>
 
-  <script is:inline>
-    // ============================================================
-    //  字段注释字典
-    // ============================================================
-    var FIELD_DICT = {
-      "name": { label: "角色名", tip: "角色的显示名称", type: "string", required: true },
-      "description": { label: "角色描述(顶层)", tip: "V2兼容字段，与data.description同步", type: "string" },
-      "personality": { label: "性格(顶层)", tip: "V3中通常留空", type: "string" },
-      "scenario": { label: "场景(顶层)", tip: "V3中通常留空", type: "string" },
-      "first_mes": { label: "开场白(顶层)", tip: "角色说的第一句话", type: "string" },
-      "mes_example": { label: "对话示例(顶层)", tip: "示范角色说话风格", type: "string" },
-      "creatorcomment": { label: "作者注释(顶层)", tip: "V2兼容字段", type: "string" },
-      "avatar": { label: "头像标记", tip: "头像文件名或none", type: "string" },
-      "talkativeness": { label: "话痨程度", tip: "0.0~1.0 控制主动发言频率", type: "string" },
-      "fav": { label: "收藏标记", tip: "是否被标记为收藏", type: "boolean" },
-      "tags": { label: "标签(顶层)", tip: "分类标签数组", type: "array" },
-      "spec": { label: "卡片规格", tip: "固定为chara_card_v3", type: "string", required: true, enum: ["chara_card_v3"] },
-      "spec_version": { label: "规格版本", tip: "固定为3.0", type: "string", required: true, enum: ["3.0"] },
-      "data.name": { label: "角色名", tip: "V3主数据层角色名", type: "string", required: true },
-      "data.description": { label: "角色描述", tip: "核心描述：外貌、性格、背景", type: "string", required: true },
-      "data.personality": { label: "性格", tip: "推荐写在description里", type: "string" },
-      "data.scenario": { label: "场景", tip: "推荐用世界书代替", type: "string" },
-      "data.first_mes": { label: "开场白", tip: "首次对话角色发送的第一条消息", type: "string", required: true },
-      "data.mes_example": { label: "对话示例", tip: "格式：<START>\\n{{char}}: ...", type: "string" },
-      "data.creator_notes": { label: "作者注释", tip: "给使用者看的说明", type: "string" },
-      "data.system_prompt": { label: "系统提示词", tip: "最高优先级系统指令，慎用", type: "string" },
-      "data.post_history_instructions": { label: "历史后指令", tip: "Author's Note位置的指令", type: "string" },
-      "data.tags": { label: "标签", tip: "分类标签数组", type: "array" },
-      "data.creator": { label: "创作者", tip: "卡片制作者名字", type: "string" },
-      "data.character_version": { label: "卡片版本", tip: "迭代版本号", type: "string" },
-      "data.alternate_greetings": { label: "备选开场白", tip: "多个可选开场白", type: "array" },
-      "data.extensions": { label: "扩展数据", tip: "V3扩展字段容器", type: "object" },
-      "data.extensions.world": { label: "关联世界书", tip: "关联的世界书名称", type: "string" },
-      "data.extensions.regex_scripts": { label: "正则脚本列表", tip: "嵌入卡片的正则替换脚本", type: "array" },
-      "data.extensions.regex_scripts[].id": { label: "脚本ID", tip: "唯一标识符", type: "string" },
-      "data.extensions.regex_scripts[].scriptName": { label: "脚本名称", tip: "显示名称", type: "string" },
-      "data.extensions.regex_scripts[].findRegex": { label: "匹配正则", tip: "正则表达式字符串", type: "string" },
-      "data.extensions.regex_scripts[].replaceString": { label: "替换内容", tip: "替换HTML，$1引用捕获组", type: "string" },
-      "data.extensions.regex_scripts[].placement": { label: "作用范围", tip: "1=输出 2=输入", type: "array" },
-      "data.extensions.regex_scripts[].disabled": { label: "是否禁用", tip: "true则不生效", type: "boolean" },
-      "data.extensions.regex_scripts[].runOnEdit": { label: "编辑时执行", tip: "编辑消息时重新执行", type: "boolean" },
-      "data.character_book": { label: "内嵌世界书", tip: "嵌入角色卡的世界书", type: "object" },
-      "data.character_book.name": { label: "世界书名称", tip: "世界书显示名称", type: "string" },
-      "data.character_book.entries": { label: "词条列表", tip: "所有词条数组", type: "array" },
-      "data.character_book.entries[].id": { label: "词条ID", tip: "从0开始的索引", type: "number" },
-      "data.character_book.entries[].keys": { label: "触发词", tip: "出现这些词时激活词条", type: "array", required: true },
-      "data.character_book.entries[].secondary_keys": { label: "次要触发词", tip: "配合selectiveLogic使用", type: "array" },
-      "data.character_book.entries[].comment": { label: "词条标题", tip: "仅管理界面显示", type: "string" },
-      "data.character_book.entries[].content": { label: "词条内容", tip: "触发后注入的设定文本", type: "string", required: true },
-      "data.character_book.entries[].constant": { label: "是否常驻", tip: "true=始终注入，无需触发词", type: "boolean" },
-      "data.character_book.entries[].selective": { label: "是否选择性", tip: "true=需要关键词触发", type: "boolean" },
-      "data.character_book.entries[].insertion_order": { label: "插入顺序", tip: "数值越大越先处理", type: "number", range: { min: 0, max: 9999 } },
-      "data.character_book.entries[].enabled": { label: "是否启用", tip: "false则完全不生效", type: "boolean" },
-      "data.character_book.entries[].position": { label: "插入位置(文本)", tip: "V2兼容字段", type: "string" },
-      "data.character_book.entries[].use_regex": { label: "正则匹配", tip: "触发词当作正则表达式", type: "boolean" },
-      "data.character_book.entries[].extensions": { label: "词条扩展参数", tip: "V3高级控制参数", type: "object" },
-      "data.character_book.entries[].extensions.position": { label: "插入位置", tip: "0=角色前 4=按深度(最常用)", type: "number", enum: [0,1,2,3,4,5,6] },
-      "data.character_book.entries[].extensions.probability": { label: "触发概率", tip: "0~100", type: "number", range: { min: 0, max: 100 } },
-      "data.character_book.entries[].extensions.useProbability": { label: "启用概率", tip: "false则忽略概率值", type: "boolean" },
-      "data.character_book.entries[].extensions.depth": { label: "插入深度", tip: "position=4时生效", type: "number", range: { min: 0, max: 999 } },
-      "data.character_book.entries[].extensions.selectiveLogic": { label: "选择逻辑", tip: "0=AND 1=NOT 2=OR", type: "number", enum: [0,1,2,3] },
-      "data.character_book.entries[].extensions.group": { label: "互斥组", tip: "同组只能激活一个", type: "string" },
-      "data.character_book.entries[].extensions.group_weight": { label: "组权重", tip: "互斥组内优先级", type: "number" },
-      "data.character_book.entries[].extensions.role": { label: "深度角色", tip: "0=系统 1=用户 2=助手", type: "number", enum: [0,1,2] },
-      "data.character_book.entries[].extensions.vectorized": { label: "向量化", tip: "true=语义向量匹配", type: "boolean" },
-      "data.character_book.entries[].extensions.display_index": { label: "显示排序", tip: "管理界面排序", type: "number" },
-      "data.character_book.entries[].extensions.exclude_recursion": { label: "排除递归", tip: "内容不触发其他词条", type: "boolean" },
-      "data.character_book.entries[].extensions.prevent_recursion": { label: "阻止递归", tip: "不被递归触发", type: "boolean" },
-      "data.character_book.entries[].extensions.delay_until_recursion": { label: "延迟到递归", tip: "递归扫描阶段才生效", type: "boolean" },
-      "data.character_book.entries[].extensions.group_override": { label: "组覆盖", tip: "可覆盖同组已激活词条", type: "boolean" },
-      "data.character_book.entries[].extensions.outlet_name": { label: "输出通道", tip: "指定注入通道", type: "string" },
-    };
+  <script>
+    import { escapeHTML } from '../scripts/utils/escape-html';
+    import { safeInt } from '../scripts/utils/safe-int';
+    import { normalizeWorldbookEntry } from '../scripts/worldbook/normalize';
+    import { getFieldInfo, validateField, validateFullJSON } from '../scripts/field-dict';
+    import { extractWorldbookImportJSON, parseWorldbookImportJSON, getWorldbookImportName, getImportedWorldbookMeta, getImportedWorldbookEntries } from '../scripts/worldbook/import';
+    import { getCardRootPayload, isCharacterCardPayload, isPureWorldbookPayload, normalizeImportedCharacterCard } from '../scripts/card-normalize';
+    import { getWorldbookSourceLabel, getWorldbookSourceClass, cleanWorldbookTitle, normalizeWorldbookTextBlock, makePreviewCopyText, buildWorldbookMarkdown, downloadWorldbookMarkdown } from '../scripts/worldbook-helpers';
+    import { buildExportWorldbookEntries, buildExportCharacterBook, generateSillyTavernJSON, generateVanillaCharacterJSON } from '../scripts/json-generate';
+    import type { ExportContext } from '../scripts/json-generate';
+    import { createTextChunk, extractPNGCharaChunk } from '../scripts/utils/png-chunk';
+    import {
+      altGreetings as altGreetingsStore,
+      importedCardMeta as importedCardMetaStore,
+      importedWorldbookMeta as importedWorldbookMetaStore,
+      statusBarData as statusBarDataStore,
+      registerSaveHandler,
+    } from '../stores/card-store';
 
-    function getFieldInfo(path) {
-      if (FIELD_DICT[path]) return FIELD_DICT[path];
-      var n1 = path.replace(/\.(\d+)\./g, '[].');
-      if (FIELD_DICT[n1]) return FIELD_DICT[n1];
-      var n2 = path.replace(/\.(\d+)$/g, '[]');
-      if (FIELD_DICT[n2]) return FIELD_DICT[n2];
-      return undefined;
+    // ============================================================
+    //  Export context helper
+    // ============================================================
+    function buildExportContext(): ExportContext {
+      return {
+        charName: charName.value.trim(),
+        charDesc: charDesc.value.trim(),
+        firstMes: firstMes.value.trim(),
+        creatorNotes: creatorNotes.value.trim(),
+        wbName: wbName.value.trim(),
+        worldbookEntries: worldbookEntries,
+        altGreetings: altGreetingsStore.get(),
+        importedCardMeta: importedCardMetaStore.get(),
+        importedWorldbookMeta: importedWorldbookMetaStore.get(),
+      };
     }
-    function validateField(path, value) {
-      var info = getFieldInfo(path); if (!info) return null;
-      if (info.required && (value === undefined || value === null || value === '')) return '必填字段不能为空';
-      if (value !== null && value !== undefined && info.type !== 'any') {
-        var t = Array.isArray(value) ? 'array' : typeof value;
-        if (t !== info.type) return '类型错误：期望 ' + info.type + '，实际 ' + t;
-      }
-      if (info.enum && value !== undefined && value !== null && value !== '' && info.enum.indexOf(value) === -1) return '值不在允许范围';
-      if (info.range && typeof value === 'number') {
-        if (info.range.min !== undefined && value < info.range.min) return '最小值为 ' + info.range.min;
-        if (info.range.max !== undefined && value > info.range.max) return '最大值为 ' + info.range.max;
-      }
-      return null;
-    }
-    function validateFullJSON(obj, pp, errs) {
-      if (!pp) pp = ''; if (!errs) errs = [];
-      if (obj === null || obj === undefined) return errs;
-      if (Array.isArray(obj)) { obj.forEach(function(it, i) { var p = pp+'.'+i; if (typeof it==='object'&&it!==null) validateFullJSON(it,p,errs); else { var e=validateField(p,it); if(e) errs.push({path:p,message:e,value:it}); } }); }
-      else if (typeof obj === 'object') { Object.keys(obj).forEach(function(k) { var fp=pp?pp+'.'+k:k; var v=obj[k]; var e=validateField(fp,v); if(e) errs.push({path:fp,message:e,value:v}); if(typeof v==='object'&&v!==null) validateFullJSON(v,fp,errs); }); }
-      return errs;
-    }
+
+    // ============================================================
+    //  Field dict bridge
+    // ============================================================
     window.__fieldDict__ = { getFieldInfo: getFieldInfo, validateFullJSON: validateFullJSON };
 
-    // ============================================================
-    //  DOM
-    // ============================================================
     var draftSelect          = document.getElementById('draftSelect');
     var btnNewDraft          = document.getElementById('btnNewDraft');
     var btnDeleteDraft       = document.getElementById('btnDeleteDraft');
@@ -288,91 +158,12 @@ import WorldbookPanel from '../components/WorldbookPanel.astro';
     var previewTypeahead     = '';
     var previewTypeaheadTimer = null;
 
-    if (!window.__altGreetings__) window.__altGreetings__ = [];
-    if (!window.__importedCardMeta__) window.__importedCardMeta__ = null;
-    if (!window.__importedWorldbookMeta__) window.__importedWorldbookMeta__ = null;
+    if (!altGreetingsStore.get().length) altGreetingsStore.set([]);
+    // importedCardMeta / importedWorldbookMeta defaults are already null in the store
 
     var DRAFTS_KEY  = "st_v3_builder_drafts";
     var CURRENT_KEY = "st_v3_builder_current_id";
     var WB_MODE_KEY = "st_v3_worldbook_mode";
-
-    // ============================================================
-    //  世界书工具
-    // ============================================================
-    function escapeHTML(str) {
-      return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-    }
-
-    function safeInt(value, fallback) {
-      var num = parseInt(value, 10);
-      return isNaN(num) ? fallback : num;
-    }
-
-    function normalizeWorldbookEntry(entry, fallbackSource) {
-      entry = entry || {};
-      var extensions = entry.extensions || {};
-      return {
-        comment: entry.comment || '',
-        content: entry.content || '',
-        keys: Array.isArray(entry.keys) ? entry.keys.slice() : [],
-        secondaryKeys: Array.isArray(entry.secondaryKeys)
-          ? entry.secondaryKeys.slice()
-          : Array.isArray(entry.secondary_keys)
-            ? entry.secondary_keys.slice()
-            : [],
-        strategy: entry.strategy || 'selective',
-        position: safeInt(entry.position, 4),
-        depth: safeInt(entry.depth, 4),
-        role: safeInt(entry.role, 0),
-        order: safeInt(entry.order !== undefined ? entry.order : entry.insertion_order, 100),
-        prob: safeInt(entry.prob !== undefined ? entry.prob : entry.probability, 100),
-        enabled: entry.enabled !== undefined ? !!entry.enabled : true,
-        disable: entry.disable !== undefined ? !!entry.disable : (entry.enabled !== undefined ? !entry.enabled : false),
-        addMemo: entry.addMemo !== undefined ? !!entry.addMemo : false,
-        ignoreBudget: entry.ignoreBudget !== undefined ? !!entry.ignoreBudget : false,
-        useRegex: entry.useRegex !== undefined ? !!entry.useRegex : !!entry.use_regex,
-        caseSensitive: entry.caseSensitive !== undefined ? !!entry.caseSensitive : !!entry.case_sensitive,
-        matchPersonaDescription: entry.matchPersonaDescription !== undefined ? !!entry.matchPersonaDescription : !!entry.match_persona_description,
-        matchCharacterDescription: entry.matchCharacterDescription !== undefined ? !!entry.matchCharacterDescription : !!entry.match_character_description,
-        matchCharacterPersonality: entry.matchCharacterPersonality !== undefined ? !!entry.matchCharacterPersonality : !!entry.match_character_personality,
-        matchCharacterDepthPrompt: entry.matchCharacterDepthPrompt !== undefined ? !!entry.matchCharacterDepthPrompt : !!entry.match_character_depth_prompt,
-        matchScenario: entry.matchScenario !== undefined ? !!entry.matchScenario : !!entry.match_scenario,
-        matchCreatorNotes: entry.matchCreatorNotes !== undefined ? !!entry.matchCreatorNotes : !!entry.match_creator_notes,
-        useGroupScoring: entry.useGroupScoring !== undefined ? !!entry.useGroupScoring : (extensions.use_group_scoring !== undefined ? !!extensions.use_group_scoring : null),
-        selectiveLogic: safeInt(entry.selectiveLogic !== undefined ? entry.selectiveLogic : extensions.selectiveLogic, 0),
-        group: entry.group || extensions.group || '',
-        groupWeight: safeInt(entry.groupWeight !== undefined ? entry.groupWeight : extensions.group_weight, 100),
-        useProbability: entry.useProbability !== undefined ? !!entry.useProbability : (extensions.useProbability !== undefined ? !!extensions.useProbability : true),
-        matchWholeWords: entry.matchWholeWords !== undefined ? !!entry.matchWholeWords : (extensions.match_whole_words !== undefined ? !!extensions.match_whole_words : null),
-        automationId: entry.automationId || extensions.automation_id || '',
-        sticky: safeInt(entry.sticky !== undefined ? entry.sticky : extensions.sticky, 0),
-        cooldown: safeInt(entry.cooldown !== undefined ? entry.cooldown : extensions.cooldown, 0),
-        delay: safeInt(entry.delay !== undefined ? entry.delay : extensions.delay, 0),
-        triggers: Array.isArray(entry.triggers) ? entry.triggers.slice() : [],
-        displayIndex: safeInt(entry.displayIndex !== undefined ? entry.displayIndex : extensions.display_index, 0),
-        excludeRecursion: entry.excludeRecursion !== undefined ? !!entry.excludeRecursion : !!extensions.exclude_recursion,
-        preventRecursion: entry.preventRecursion !== undefined ? !!entry.preventRecursion : !!extensions.prevent_recursion,
-        delayUntilRecursion: entry.delayUntilRecursion !== undefined ? !!entry.delayUntilRecursion : !!extensions.delay_until_recursion,
-        groupOverride: entry.groupOverride !== undefined ? !!entry.groupOverride : !!extensions.group_override,
-        vectorized: entry.vectorized !== undefined ? !!entry.vectorized : !!extensions.vectorized,
-        outletName: entry.outletName || extensions.outlet_name || '',
-        characterFilter: entry.characterFilter || null,
-        raw: entry.raw || null,
-        source: entry.source || fallbackSource || 'manual'
-      };
-    }
-
-    function getWorldbookSourceLabel(source) {
-      if (source === 'ai') return '生成';
-      if (source === 'import') return '导入';
-      return '手动';
-    }
-
-    function getWorldbookSourceClass(source) {
-      if (source === 'ai') return 'wb-source-generated';
-      if (source === 'import') return 'wb-source-import';
-      return 'wb-source-manual';
-    }
 
     function getWorldbookEntriesForSource(source) {
       if (source === 'all') return worldbookEntries.slice();
@@ -501,305 +292,6 @@ import WorldbookPanel from '../components/WorldbookPanel.astro';
       return visible.length ? visible[0].index : -1;
     }
 
-    function makePreviewCopyText(entry) {
-      entry = entry || {};
-      var title = entry.comment || '未命名';
-      var keys = (entry.keys || []).join(', ') || '无';
-      var content = entry.content || '';
-      return [
-        '标题：' + title,
-        '来源：' + getWorldbookSourceLabel(entry.source || 'manual'),
-        '触发词：' + keys,
-        '策略：' + (entry.strategy || 'selective'),
-        '位置：' + String(entry.position !== undefined ? entry.position : 4),
-        '深度：' + String(entry.depth !== undefined ? entry.depth : 4),
-        '顺序：' + String(entry.order !== undefined ? entry.order : 100),
-        '概率：' + String(entry.prob !== undefined ? entry.prob : 100) + '%',
-        '',
-        '设定内容：',
-        content
-      ].join('\n');
-    }
-
-    function cleanWorldbookTitle(comment, index) {
-      var title = String(comment || '').trim();
-      title = title.replace(/^=+\s*/g, '').replace(/\s*=+$/g, '').trim();
-      return title || ('未命名条目 ' + String(index + 1));
-    }
-
-    function normalizeWorldbookTextBlock(text) {
-      return String(text || '')
-        .replace(/\r\n/g, '\n')
-        .replace(/\r/g, '\n')
-        .trim();
-    }
-
-    function extractWorldbookImportJSON(text) {
-      var raw = String(text || '').replace(/^\uFEFF/, '').trim();
-      if (!raw) return '';
-      if (raw[0] !== '{' && raw[0] !== '[') {
-        var fence = raw.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
-        if (fence && fence[1]) {
-          raw = fence[1].trim();
-        }
-      }
-      return raw;
-    }
-
-    function parseWorldbookImportJSON(text) {
-      var raw = extractWorldbookImportJSON(text);
-      if (!raw) throw new Error('导入内容为空');
-      function findJsonBounds(text, openChar, closeChar) {
-        var start = text.indexOf(openChar);
-        if (start < 0) return null;
-        var depth = 0;
-        var inString = false;
-        var escaped = false;
-        for (var i = start; i < text.length; i++) {
-          var ch = text[i];
-          if (escaped) {
-            escaped = false;
-            continue;
-          }
-          if (ch === '\\') {
-            escaped = true;
-            continue;
-          }
-          if (ch === '"') {
-            inString = !inString;
-            continue;
-          }
-          if (inString) continue;
-          if (ch === openChar) depth++;
-          if (ch === closeChar) {
-            depth--;
-            if (depth === 0) return [start, i + 1];
-          }
-        }
-        return null;
-      }
-
-      var bounds = findJsonBounds(raw, '{', '}') || findJsonBounds(raw, '[', ']');
-      if (bounds) {
-        return JSON.parse(raw.slice(bounds[0], bounds[1]));
-      }
-      throw new Error('未找到可解析的 JSON 片段');
-    }
-
-    function getWorldbookImportName(payload, fallbackName) {
-      if (!payload || typeof payload !== 'object') return fallbackName || '';
-      if (payload.originalData && payload.originalData.name && String(payload.originalData.name).trim()) {
-        return String(payload.originalData.name).trim();
-      }
-      if (payload.data) {
-        if (payload.data.character_book && payload.data.character_book.name && String(payload.data.character_book.name).trim()) {
-          return String(payload.data.character_book.name).trim();
-        }
-        if (payload.data.extensions && payload.data.extensions.world && String(payload.data.extensions.world).trim()) {
-          return String(payload.data.extensions.world).trim();
-        }
-      }
-      if (payload.character_book && payload.character_book.name && String(payload.character_book.name).trim()) {
-        return String(payload.character_book.name).trim();
-      }
-      if (payload.name && String(payload.name).trim()) return String(payload.name).trim();
-      return fallbackName || '';
-    }
-
-    function getImportedWorldbookMeta(payload) {
-      payload = payload || {};
-      var source = payload.data && payload.data.character_book ? payload.data.character_book : payload;
-      var original = payload.originalData || {};
-      return {
-        sourceFormat: Array.isArray(payload.qrList) && payload.qrList.length ? 'quick-reply-bundle' : 'worldbook',
-        worldbookDescription: String(source.description || original.description || '').trim(),
-        worldbookScanDepth: source.scan_depth !== undefined ? safeInt(source.scan_depth, 3) : (original.scan_depth !== undefined ? safeInt(original.scan_depth, 3) : 3),
-        worldbookTokenBudget: source.token_budget !== undefined ? safeInt(source.token_budget, 1800000000) : (original.token_budget !== undefined ? safeInt(original.token_budget, 1800000000) : 1800000000),
-        worldbookRecursiveScanning: source.recursive_scanning !== undefined ? !!source.recursive_scanning : (original.recursive_scanning !== undefined ? !!original.recursive_scanning : true),
-        worldbookColor: payload.color || '',
-        worldbookOnlyBorderColor: payload.onlyBorderColor !== undefined ? !!payload.onlyBorderColor : false,
-        worldbookDisableSend: payload.disableSend !== undefined ? !!payload.disableSend : false,
-        worldbookPlaceBeforeInput: payload.placeBeforeInput !== undefined ? !!payload.placeBeforeInput : false,
-        worldbookInjectInput: payload.injectInput !== undefined ? !!payload.injectInput : false,
-        worldbookIdIndex: payload.idIndex !== undefined ? safeInt(payload.idIndex, 0) : 0,
-        quickReplyCount: Array.isArray(payload.qrList) ? payload.qrList.length : 0,
-        quickReplies: Array.isArray(payload.qrList) ? payload.qrList.slice() : []
-      };
-    }
-
-    function getImportedWorldbookEntries(payload) {
-      if (!payload) return [];
-
-      var container = payload;
-      if (payload.data && payload.data.character_book) {
-        container = payload.data.character_book;
-      } else if (payload.character_book) {
-        container = payload.character_book;
-      }
-
-      var entries = [];
-      if (Array.isArray(container)) {
-        entries = container.slice();
-      } else if (Array.isArray(container.entries)) {
-        entries = container.entries.slice();
-      } else if (container.entries && typeof container.entries === 'object') {
-        entries = Object.keys(container.entries)
-          .sort(function(a, b) {
-            var na = parseInt(a, 10);
-            var nb = parseInt(b, 10);
-            if (isNaN(na) || isNaN(nb)) return String(a).localeCompare(String(b), 'zh-Hans-CN');
-            return na - nb;
-          })
-          .map(function(key) {
-            return container.entries[key];
-          })
-          .filter(function(entry) { return entry !== undefined && entry !== null; });
-      } else if (Array.isArray(payload.entries)) {
-        entries = payload.entries.slice();
-      } else if (payload.entries && typeof payload.entries === 'object') {
-        entries = Object.keys(payload.entries)
-          .sort(function(a, b) {
-            var na = parseInt(a, 10);
-            var nb = parseInt(b, 10);
-            if (isNaN(na) || isNaN(nb)) return String(a).localeCompare(String(b), 'zh-Hans-CN');
-            return na - nb;
-          })
-          .map(function(key) {
-            return payload.entries[key];
-          })
-          .filter(function(entry) { return entry !== undefined && entry !== null; });
-      } else if (payload.originalData && Array.isArray(payload.originalData.entries)) {
-        entries = payload.originalData.entries.slice();
-      } else if (payload.originalData && payload.originalData.entries && typeof payload.originalData.entries === 'object') {
-        entries = Object.keys(payload.originalData.entries)
-          .sort(function(a, b) {
-            var na = parseInt(a, 10);
-            var nb = parseInt(b, 10);
-            if (isNaN(na) || isNaN(nb)) return String(a).localeCompare(String(b), 'zh-Hans-CN');
-            return na - nb;
-          })
-          .map(function(key) {
-            return payload.originalData.entries[key];
-          })
-          .filter(function(entry) { return entry !== undefined && entry !== null; });
-      }
-
-      if (!entries.length && Array.isArray(payload.qrList)) {
-        entries = payload.qrList.map(function(item, index) {
-          var label = String(item && (item.label || item.title || item.name) || '').trim();
-          var message = String(item && item.message || '').trim();
-          return {
-            comment: label || ('快速回复 ' + String(index + 1)),
-            content: message,
-            keys: [],
-            secondaryKeys: [],
-            strategy: 'constant',
-            position: 4,
-            depth: 4,
-            role: 0,
-            order: safeInt(item && item.id, index + 1),
-            prob: 100,
-            enabled: true,
-            disable: false,
-            addMemo: false,
-            ignoreBudget: false,
-            useRegex: false,
-            caseSensitive: false,
-            matchPersonaDescription: false,
-            matchCharacterDescription: false,
-            matchCharacterPersonality: false,
-            matchCharacterDepthPrompt: false,
-            matchScenario: false,
-            matchCreatorNotes: false,
-            selectiveLogic: 0,
-            group: '',
-            groupWeight: 100,
-            useProbability: true,
-            matchWholeWords: null,
-            automationId: '',
-            sticky: 0,
-            cooldown: 0,
-            delay: 0,
-            triggers: [],
-            displayIndex: index,
-            excludeRecursion: false,
-            preventRecursion: false,
-            delayUntilRecursion: false,
-            groupOverride: false,
-            vectorized: false,
-            outletName: '',
-            characterFilter: null,
-            raw: item || null,
-            source: 'import'
-          };
-        });
-      }
-
-      return entries.map(function(entry, index) {
-        var ext = entry && entry.extensions ? entry.extensions : {};
-        var keys = Array.isArray(entry && entry.keys)
-          ? entry.keys.slice()
-          : Array.isArray(entry && entry.key)
-            ? entry.key.slice()
-            : [];
-        var secondaryKeys = Array.isArray(entry && entry.secondary_keys)
-          ? entry.secondary_keys.slice()
-          : Array.isArray(entry && entry.keysecondary)
-            ? entry.keysecondary.slice()
-            : [];
-        var vectorized = !!(entry && (entry.vectorized || ext.vectorized));
-        var constant = !!(entry && entry.constant);
-        var strategy = entry && entry.strategy
-          ? entry.strategy
-          : (constant ? 'constant' : (vectorized ? 'vectorized' : 'selective'));
-        var disable = entry && entry.disable !== undefined ? !!entry.disable : (entry && entry.enabled !== undefined ? !entry.enabled : false);
-
-        return normalizeWorldbookEntry({
-          comment: entry && (entry.comment || entry.title || entry.name) || '',
-          content: entry && entry.content || '',
-          keys: keys,
-          secondaryKeys: secondaryKeys,
-          strategy: strategy,
-          position: safeInt(ext.position !== undefined ? ext.position : entry && entry.position, 4),
-          depth: safeInt(ext.depth !== undefined ? ext.depth : entry && entry.depth, 4),
-          role: safeInt(ext.role !== undefined ? ext.role : entry && entry.role, 0),
-          order: safeInt(entry && (entry.insertion_order !== undefined ? entry.insertion_order : entry.order), 100),
-          prob: safeInt(ext.probability !== undefined ? ext.probability : entry && (entry.probability !== undefined ? entry.probability : entry.prob), 100),
-          enabled: entry && entry.enabled !== undefined ? !!entry.enabled : !disable,
-          disable: disable,
-          addMemo: entry && entry.addMemo !== undefined ? !!entry.addMemo : !!(entry && entry.add_memo),
-          ignoreBudget: entry && entry.ignoreBudget !== undefined ? !!entry.ignoreBudget : !!(entry && entry.ignore_budget),
-          useRegex: entry && entry.use_regex !== undefined ? !!entry.use_regex : !!(entry && entry.useRegex),
-          selectiveLogic: safeInt(ext.selectiveLogic !== undefined ? ext.selectiveLogic : entry && entry.selectiveLogic, 0),
-          group: ext.group || (entry && entry.group) || '',
-          groupWeight: safeInt(ext.group_weight !== undefined ? ext.group_weight : entry && entry.group_weight, 100),
-          useProbability: ext.useProbability !== undefined ? !!ext.useProbability : true,
-          matchPersonaDescription: entry && entry.matchPersonaDescription !== undefined ? !!entry.matchPersonaDescription : !!(entry && entry.match_persona_description),
-          matchCharacterDescription: entry && entry.matchCharacterDescription !== undefined ? !!entry.matchCharacterDescription : !!(entry && entry.match_character_description),
-          matchCharacterPersonality: entry && entry.matchCharacterPersonality !== undefined ? !!entry.matchCharacterPersonality : !!(entry && entry.match_character_personality),
-          matchCharacterDepthPrompt: entry && entry.matchCharacterDepthPrompt !== undefined ? !!entry.matchCharacterDepthPrompt : !!(entry && entry.match_character_depth_prompt),
-          matchScenario: entry && entry.matchScenario !== undefined ? !!entry.matchScenario : !!(entry && entry.match_scenario),
-          matchCreatorNotes: entry && entry.matchCreatorNotes !== undefined ? !!entry.matchCreatorNotes : !!(entry && entry.match_creator_notes),
-          excludeRecursion: ext.exclude_recursion !== undefined ? !!ext.exclude_recursion : !!(entry && entry.excludeRecursion),
-          preventRecursion: ext.prevent_recursion !== undefined ? !!ext.prevent_recursion : !!(entry && entry.preventRecursion),
-          delayUntilRecursion: ext.delay_until_recursion !== undefined ? !!ext.delay_until_recursion : !!(entry && entry.delayUntilRecursion),
-          groupOverride: ext.group_override !== undefined ? !!ext.group_override : !!(entry && entry.groupOverride),
-          vectorized: vectorized,
-          outletName: ext.outlet_name || (entry && entry.outletName) || '',
-          matchWholeWords: ext.match_whole_words !== undefined ? !!ext.match_whole_words : (entry && entry.matchWholeWords !== undefined ? !!entry.matchWholeWords : null),
-          useGroupScoring: ext.use_group_scoring !== undefined ? !!ext.use_group_scoring : (entry && entry.useGroupScoring !== undefined ? !!entry.useGroupScoring : null),
-          automationId: ext.automation_id || (entry && entry.automationId) || '',
-          sticky: safeInt(entry && entry.sticky !== undefined ? entry.sticky : ext.sticky, 0),
-          cooldown: safeInt(entry && entry.cooldown !== undefined ? entry.cooldown : ext.cooldown, 0),
-          delay: safeInt(entry && entry.delay !== undefined ? entry.delay : ext.delay, 0),
-          triggers: Array.isArray(entry && entry.triggers) ? entry.triggers.slice() : [],
-          displayIndex: safeInt(entry && entry.displayIndex !== undefined ? entry.displayIndex : ext.display_index, index),
-          characterFilter: entry && entry.characterFilter ? entry.characterFilter : (ext.characterFilter || null),
-          source: 'import'
-        }, 'import');
-      });
-    }
-
     function showImportStatus(message, tone) {
       if (!importAssetStatus) return;
       var map = {
@@ -812,62 +304,6 @@ import WorldbookPanel from '../components/WorldbookPanel.astro';
       importAssetStatus.style.background = c.bg;
       importAssetStatus.style.borderColor = c.border;
       importAssetStatus.textContent = message;
-    }
-
-    function isCharacterCardPayload(json) {
-      if (!json || typeof json !== 'object') return false;
-      if (isPureWorldbookPayload(json)) return false;
-      if (json.spec === 'chara_card_v3') return true;
-      if (json.data && typeof json.data === 'object') {
-        if (json.data.character_book || json.data.first_mes !== undefined || json.data.creator_notes !== undefined || json.data.mes_example !== undefined) {
-          return true;
-        }
-        if (json.data.nickname !== undefined || json.data.gender !== undefined || json.data.statusBlockConfig !== undefined) {
-          return true;
-        }
-      }
-      var root = json.data && typeof json.data === 'object' ? json.data : json;
-      return !!(
-        root &&
-        typeof root === 'object' &&
-        (
-          root.first_mes !== undefined ||
-          root.creator_notes !== undefined ||
-          root.mes_example !== undefined ||
-          root.alternate_greetings !== undefined ||
-          root.character_book !== undefined ||
-          root.nickname !== undefined ||
-          root.gender !== undefined ||
-          root.statusBlockConfig !== undefined ||
-          root.personality !== undefined ||
-          root.scenario !== undefined ||
-          root.creator !== undefined ||
-          root.character_version !== undefined
-        )
-      );
-    }
-
-    function isPureWorldbookPayload(json) {
-      if (!json || typeof json !== 'object') return false;
-      if (!json.entries) return false;
-
-      var root = json.data && typeof json.data === 'object' ? json.data : json;
-      if (!root || typeof root !== 'object') return false;
-
-      return !(
-        root.first_mes !== undefined ||
-        root.creator_notes !== undefined ||
-        root.mes_example !== undefined ||
-        root.alternate_greetings !== undefined ||
-        root.character_book !== undefined ||
-        root.nickname !== undefined ||
-        root.gender !== undefined ||
-        root.statusBlockConfig !== undefined ||
-        root.personality !== undefined ||
-        root.scenario !== undefined ||
-        root.creator !== undefined ||
-        root.character_version !== undefined
-      );
     }
 
     function commitImportedState(options) {
@@ -901,6 +337,7 @@ import WorldbookPanel from '../components/WorldbookPanel.astro';
       worldbookBrowseFilter = 'all';
       resetWBForm();
       window.__importedWorldbookMeta__ = importedMeta;
+      importedWorldbookMetaStore.set(importedMeta);
       updateWorldbookFilterUI();
       setWorldbookEditorMeta(-1);
       renderEntriesList();
@@ -910,42 +347,6 @@ import WorldbookPanel from '../components/WorldbookPanel.astro';
         '已导入 ' + String(entries.length) + (Array.isArray(payload && payload.qrList) && payload.qrList.length ? ' 个快速回复按钮' : ' 条世界书'),
         'ok'
       );
-    }
-
-    function buildWorldbookMarkdown(entries) {
-      var list = Array.isArray(entries) ? entries : [];
-      var lines = [];
-      lines.push('世界书词条导出');
-      lines.push('');
-      lines.push('共 ' + String(list.length) + ' 条');
-      lines.push('');
-      list.forEach(function(entry, index) {
-        var title = cleanWorldbookTitle(entry && entry.comment, index);
-        var keys = Array.isArray(entry && entry.keys) ? entry.keys.filter(function(key) {
-          return String(key || '').trim().length > 0;
-        }) : [];
-        var content = normalizeWorldbookTextBlock(entry && entry.content);
-        lines.push('条目 ' + String(index + 1));
-        lines.push('标题：' + title);
-        lines.push('触发词：' + (keys.length ? keys.join('，') : '无'));
-        lines.push('设定内容：');
-        lines.push(content || '（空）');
-        lines.push('');
-      });
-      return lines.join('\n').replace(/\n+$/, '') + '\n';
-    }
-
-    function downloadWorldbookMarkdown() {
-      var markdown = buildWorldbookMarkdown(worldbookEntries);
-      var nameSource = (wbName && wbName.value && wbName.value.trim()) || (charName && charName.value && charName.value.trim()) || 'worldbook';
-      var fileName = nameSource.replace(/[\\/:*?"<>|]+/g, '_').trim() || 'worldbook';
-      var blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' });
-      var url = URL.createObjectURL(blob);
-      var a = document.createElement('a');
-      a.href = url;
-      a.download = fileName + '.md';
-      a.click();
-      setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
     }
 
     function getPreviewVisibleIndex(visible, globalIndex) {
@@ -1316,6 +717,7 @@ import WorldbookPanel from '../components/WorldbookPanel.astro';
     // ============================================================
     //  全局桥接
     // ============================================================
+    registerSaveHandler(function() { debouncedUpdateAndSave(); });
     window.triggerGlobalUpdate = function() { debouncedUpdateAndSave(); };
 
     // ★ 变量卡生成器 — 批量注入世界书条目 & 正则脚本
@@ -1388,7 +790,7 @@ window.applyJSONFromEditor = function(json) {
     : (json.data && json.data.character_book && typeof json.data.character_book === 'object'
       ? json.data.character_book
       : {});
-  window.__importedCardMeta__ = {
+  var _importedCardMeta = {
     personality: String(card.personality || root.personality || '').trim(),
     scenario: String(card.scenario || root.scenario || '').trim(),
     mesExample: String(card.mesExample || root.mes_example || '').trim(),
@@ -1408,14 +810,17 @@ window.applyJSONFromEditor = function(json) {
     characterBookTokenBudget: importedCharacterBook.token_budget !== undefined ? safeInt(importedCharacterBook.token_budget, 1800000000) : 1800000000,
     characterBookRecursiveScanning: importedCharacterBook.recursive_scanning !== undefined ? !!importedCharacterBook.recursive_scanning : true
   };
+  importedCardMetaStore.set(_importedCardMeta);
+  window.__importedCardMeta__ = _importedCardMeta;
+  importedWorldbookMetaStore.set(null);
   window.__importedWorldbookMeta__ = null;
 
   if (window.__loadStatusBarData__) {
     window.__loadStatusBarData__({
-      description: window.__importedCardMeta__.statusBlockConfig && window.__importedCardMeta__.statusBlockConfig.description
-        ? String(window.__importedCardMeta__.statusBlockConfig.description).trim()
+      description: _importedCardMeta.statusBlockConfig && _importedCardMeta.statusBlockConfig.description
+        ? String(_importedCardMeta.statusBlockConfig.description).trim()
         : '',
-      presetStatusBlock: window.__importedCardMeta__.presetStatusBlock || ''
+      presetStatusBlock: _importedCardMeta.presetStatusBlock || ''
     });
   }
 
@@ -1435,6 +840,7 @@ window.applyJSONFromEditor = function(json) {
   regexScripts = card.regexScripts;
   tavernHelperScripts = card.tavernHelperScripts;
   window.__altGreetings__ = card.altGreetings;
+  altGreetingsStore.set(card.altGreetings || []);
   if (window.__renderAltGreetings__) window.__renderAltGreetings__();
 
   if (card.avatarSrc) {
@@ -1493,34 +899,13 @@ window.__setImportedAvatar__ = function(src, skipCommit, exportBase64) {
     };
 
     // ============================================================
-    //  PNG 工具
-    // ============================================================
-    var crcTable = [];
-    for (var n = 0; n < 256; n++) {
-      var c = n;
-      for (var k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
-      crcTable[n] = c;
-    }
-    function crc32(arr) { var crc=0^(-1); for(var i=0;i<arr.length;i++) crc=(crc>>>8)^crcTable[(crc^arr[i])&0xFF]; return(crc^(-1))>>>0; }
-    function createTextChunk(kw, text) {
-      var b64=btoa(unescape(encodeURIComponent(text)));
-      var kb=new TextEncoder().encode(kw); var tb=new TextEncoder().encode(b64);
-      var d=new Uint8Array(kb.length+1+tb.length); d.set(kb,0); d[kb.length]=0; d.set(tb,kb.length+1);
-      var ty=new TextEncoder().encode('tEXt'); var td=new Uint8Array(4+d.length); td.set(ty,0); td.set(d,4);
-      var cs=crc32(td); var ch=new Uint8Array(4+4+d.length+4);
-      ch[0]=(d.length>>>24)&0xFF; ch[1]=(d.length>>>16)&0xFF; ch[2]=(d.length>>>8)&0xFF; ch[3]=d.length&0xFF;
-      ch.set(td,4); ch[ch.length-4]=(cs>>>24)&0xFF; ch[ch.length-3]=(cs>>>16)&0xFF;
-      ch[ch.length-2]=(cs>>>8)&0xFF; ch[ch.length-1]=cs&0xFF; return ch;
-    }
-
-    // ============================================================
     //  PNG 导出
     // ============================================================
     if (btnExportPNG) {
       btnExportPNG.addEventListener('click', function() {
         if (!currentAvatarExportBase64) return alert("❌ 请先上传头像（需要可导出的 PNG/base64 头像）！");
         try {
-          var ch  = createTextChunk('chara', JSON.stringify(generateSillyTavernJSON()));
+          var ch  = createTextChunk('chara', JSON.stringify(generateSillyTavernJSON(buildExportContext())));
           var raw = atob(currentAvatarExportBase64.split(',')[1]);
           var bytes = new Uint8Array(raw.length);
           for (var i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
@@ -1619,8 +1004,11 @@ window.__setImportedAvatar__ = function(src, skipCommit, exportBase64) {
       currentAvatarSrc = d.avatarSrc || d.avatarBase64 || '';
       currentAvatarExportBase64 = /^data:image\/[a-z0-9.+-]+;base64,/i.test(d.avatarBase64 || '') ? d.avatarBase64 : (/^data:image\/[a-z0-9.+-]+;base64,/i.test(currentAvatarSrc) ? currentAvatarSrc : '');
       window.__altGreetings__ = d.altGreetings || [];
+      altGreetingsStore.set(d.altGreetings || []);
       window.__importedCardMeta__ = d.importedCardMeta || null;
+      importedCardMetaStore.set(d.importedCardMeta || null);
       window.__importedWorldbookMeta__ = d.importedWorldbookMeta || null;
+      importedWorldbookMetaStore.set(d.importedWorldbookMeta || null);
       if (window.__renderAltGreetings__) window.__renderAltGreetings__();
       // ★ 恢复状态栏数据
       if (d.statusBarData && window.__loadStatusBarData__) {
@@ -1654,10 +1042,10 @@ window.__setImportedAvatar__ = function(src, skipCommit, exportBase64) {
         tavernHelperScripts: tavernHelperScripts,
         avatarSrc:       currentAvatarSrc,
         avatarBase64:    currentAvatarExportBase64,
-        altGreetings:    window.__altGreetings__ || [],
-        importedCardMeta: window.__importedCardMeta__ || null,
-        importedWorldbookMeta: window.__importedWorldbookMeta__ || null,
-        statusBarData:   window.__getStatusBarData__ ? window.__getStatusBarData__() : null,  // ★ 保存状态栏
+        altGreetings:    altGreetingsStore.get(),
+        importedCardMeta: importedCardMetaStore.get(),
+        importedWorldbookMeta: importedWorldbookMetaStore.get(),
+        statusBarData:   statusBarDataStore.get(),  // ★ 保存状态栏
         updatedAt:       new Date(now).toLocaleTimeString('zh-CN', { hour12: false }),
         updatedAtTs:     now
       };
@@ -1696,7 +1084,9 @@ window.__setImportedAvatar__ = function(src, skipCommit, exportBase64) {
       charName.value = ''; wbName.value = ''; charDesc.value = ''; firstMes.value = ''; creatorNotes.value = '';
       worldbookEntries = []; regexScripts = []; tavernHelperScripts = []; currentAvatarSrc = ''; currentAvatarExportBase64 = '';
       window.__importedCardMeta__ = null;
+      importedCardMetaStore.set(null);
       window.__importedWorldbookMeta__ = null;
+      importedWorldbookMetaStore.set(null);
       selectedWorldbookIndex = -1;
       worldbookBrowseFilter = 'all';
       updateWorldbookFilterUI();
@@ -1704,6 +1094,7 @@ window.__setImportedAvatar__ = function(src, skipCommit, exportBase64) {
       avatarImg.removeAttribute('src');
       avatarImg.style.display = 'none'; avatarPlaceholder.style.display = 'block';
       window.__altGreetings__ = [];
+      altGreetingsStore.set([]);
       if (window.__renderAltGreetings__) window.__renderAltGreetings__();
       // ★ 新建草稿时重置状态栏
       if (window.__loadStatusBarData__) window.__loadStatusBarData__({
@@ -1756,44 +1147,6 @@ window.__setImportedAvatar__ = function(src, skipCommit, exportBase64) {
         reader.onerror = function() { reject(new Error('无法读取文件')); };
         reader.readAsDataURL(file);
       });
-    }
-
-    function extractPNGCharaChunk(bytes) {
-      var i = 8;
-      while (i < bytes.length - 12) {
-        var length =
-          (bytes[i]   << 24 | bytes[i+1] << 16 |
-           bytes[i+2] <<  8 | bytes[i+3]) >>> 0;
-        var type = String.fromCharCode(
-          bytes[i+4], bytes[i+5], bytes[i+6], bytes[i+7]
-        );
-        if (type === 'tEXt') {
-          var dataStart = i + 8;
-          var dataEnd   = i + 8 + length;
-          var data      = bytes.slice(dataStart, dataEnd);
-          var nullPos = data.indexOf(0);
-          if (nullPos < 0) {
-            i += 12 + length;
-            continue;
-          }
-
-          var keyword = '';
-          for (var k = 0; k < nullPos; k++) {
-            keyword += String.fromCharCode(data[k]);
-          }
-
-          if (keyword === 'chara' || keyword === 'ccv3') {
-            var value = '';
-            for (var v = nullPos + 1; v < data.length; v++) {
-              value += String.fromCharCode(data[v]);
-            }
-            return value;
-          }
-        }
-        if (type === 'IEND') break;
-        i += 12 + length;
-      }
-      return null;
     }
 
     function importCardOrWorldbookText(text, fallbackName) {
@@ -1942,141 +1295,6 @@ window.__setImportedAvatar__ = function(src, skipCommit, exportBase64) {
           setImportDropActive(false);
         });
       });
-    }
-
-    function getCardRootPayload(json) {
-      if (!json || typeof json !== 'object') return null;
-      if (json.data && typeof json.data === 'object') return json.data;
-      return json;
-    }
-
-    function normalizeImportedCharacterCard(json) {
-      if (!json || typeof json !== 'object') return null;
-
-      var root = getCardRootPayload(json);
-      if (!root) return null;
-
-      var hasCardFields = !!(
-        json.spec === 'chara_card_v3' ||
-        json.spec_version === '3.0' ||
-        root.first_mes !== undefined ||
-        root.creator_notes !== undefined ||
-        root.mes_example !== undefined ||
-        root.alternate_greetings !== undefined ||
-        root.nickname !== undefined ||
-        root.gender !== undefined ||
-        root.statusBlockConfig !== undefined ||
-        root.personality !== undefined ||
-        root.scenario !== undefined ||
-        root.creator !== undefined ||
-        root.character_version !== undefined ||
-        root.character_book !== undefined
-      );
-      if (!hasCardFields) return null;
-
-      function coerceImportedPosition(entry) {
-        if (!entry || typeof entry !== 'object') return 4;
-        if (entry.extensions && entry.extensions.position !== undefined) return safeInt(entry.extensions.position, 4);
-        if (entry.position !== undefined) {
-          if (entry.position === 'before_char') return 0;
-          if (entry.position === 'after_char') return 4;
-          return safeInt(entry.position, 4);
-        }
-        return 4;
-      }
-
-      function normalizeAvatarSrc(value) {
-        var str = String(value || '').trim();
-        if (!str || str.toLowerCase() === 'none') return '';
-        if (/^data:image\/[a-z0-9.+-]+;base64,/i.test(str)) return str;
-        if (/^https?:\/\//i.test(str) || /^\/\//.test(str) || /^\/[^/]/.test(str)) return str;
-        return '';
-      }
-
-      var name = String(root.name || json.name || '').trim();
-      var desc = String(root.description || '').trim();
-      var personality = String(root.personality || json.personality || '').trim();
-      var scenario = String(root.scenario || json.scenario || '').trim();
-      var first = String(root.first_mes || '').trim();
-      var mesExample = String(root.mes_example || json.mes_example || '').trim();
-      var notes = String(root.creator_notes || root.creatorcomment || '').trim();
-      var wb = String((root.extensions && root.extensions.world) || root.character_book && root.character_book.name || json.wbName || '').trim();
-      var altGreetings = Array.isArray(root.alternate_greetings) ? root.alternate_greetings.slice() : [];
-      var tags = Array.isArray(root.tags) ? root.tags.slice() : (Array.isArray(json.tags) ? json.tags.slice() : []);
-      var creator = String(root.creator || json.creator || '').trim();
-      var characterVersion = String(root.character_version || json.character_version || '').trim();
-      var nickname = String(root.nickname || json.nickname || '').trim();
-      var gender = String(root.gender || json.gender || '').trim();
-      var statusBlockConfig = root.statusBlockConfig && typeof root.statusBlockConfig === 'object'
-        ? root.statusBlockConfig
-        : (json.statusBlockConfig && typeof json.statusBlockConfig === 'object'
-          ? json.statusBlockConfig
-          : { description: '' });
-      var presetStatusBlock = String(root.presetStatusBlock || json.presetStatusBlock || '').trim();
-      var regexScripts = [];
-      var tavernHelperScripts = [];
-      var avatarSrc = normalizeAvatarSrc(json.avatar || root.avatar || '');
-
-      var characterBook = root.character_book || json.character_book || null;
-      var entries = [];
-      if (characterBook && Array.isArray(characterBook.entries)) {
-        entries = characterBook.entries.slice();
-        if (!wb && characterBook.name) wb = String(characterBook.name).trim();
-      } else if (characterBook && characterBook.entries && typeof characterBook.entries === 'object') {
-        entries = Object.keys(characterBook.entries).map(function(key) { return characterBook.entries[key]; });
-      }
-
-      return {
-        charName: name,
-        wbName: wb,
-        charDesc: desc,
-        personality: personality,
-        scenario: scenario,
-        firstMes: first,
-        mesExample: mesExample,
-        creatorNotes: notes,
-        tags: tags,
-        creator: creator,
-        characterVersion: characterVersion,
-        nickname: nickname,
-        gender: gender,
-        statusBlockConfig: statusBlockConfig,
-        presetStatusBlock: presetStatusBlock,
-        worldbookEntries: entries.map(function(e) {
-          return normalizeWorldbookEntry({
-            comment: e && (e.comment || e.title || e.name) || '',
-            content: e && e.content || '',
-            keys: Array.isArray(e && e.keys) ? e.keys.slice() : [],
-            secondaryKeys: Array.isArray(e && e.secondary_keys) ? e.secondary_keys.slice() : [],
-            strategy: e && e.constant ? 'constant' : (e && e.vectorized ? 'vectorized' : (e && e.extensions && e.extensions.vectorized ? 'vectorized' : 'selective')),
-            position: coerceImportedPosition(e),
-            depth: (e && e.extensions && e.extensions.depth !== undefined) ? e.extensions.depth : 4,
-            role: (e && e.extensions && e.extensions.role !== undefined) ? e.extensions.role : 0,
-            order: e && e.insertion_order !== undefined ? e.insertion_order : (e && e.order !== undefined ? e.order : 100),
-            prob: (e && e.extensions && e.extensions.probability !== undefined) ? e.extensions.probability : (e && e.priority !== undefined ? e.priority : 100),
-            enabled: e && e.enabled !== undefined ? !!e.enabled : true,
-            useRegex: !!(e && (e.use_regex || e.useRegex)),
-            caseSensitive: !!(e && (e.case_sensitive || e.caseSensitive)),
-            selectiveLogic: (e && e.extensions && e.extensions.selectiveLogic !== undefined) ? e.extensions.selectiveLogic : 0,
-            group: (e && e.extensions && e.extensions.group) || '',
-            groupWeight: (e && e.extensions && e.extensions.group_weight !== undefined) ? e.extensions.group_weight : 100,
-            useProbability: (e && e.extensions && e.extensions.useProbability !== undefined) ? !!e.extensions.useProbability : true,
-            excludeRecursion: !!(e && e.extensions && e.extensions.exclude_recursion),
-            preventRecursion: !!(e && e.extensions && e.extensions.prevent_recursion),
-            delayUntilRecursion: !!(e && e.extensions && e.extensions.delay_until_recursion),
-            groupOverride: !!(e && e.extensions && e.extensions.group_override),
-            vectorized: !!(e && e.extensions && e.extensions.vectorized),
-            outletName: (e && e.extensions && e.extensions.outlet_name) || '',
-            source: e && e.source || 'import'
-          }, 'import');
-        }),
-        regexScripts: Array.isArray(root.extensions && root.extensions.regex_scripts) ? root.extensions.regex_scripts.slice() : regexScripts,
-        tavernHelperScripts: Array.isArray(root.extensions && root.extensions.tavern_helper && root.extensions.tavern_helper.scripts)
-          ? root.extensions.tavern_helper.scripts.slice()
-          : tavernHelperScripts,
-        altGreetings: altGreetings,
-        avatarSrc: avatarSrc
-      };
     }
 
     // ============================================================
@@ -2293,132 +1511,8 @@ window.__setImportedAvatar__ = function(src, skipCommit, exportBase64) {
     });
 
     // ============================================================
-    //  JSON 生成
+    //  JSON 生成 (wrappers around imported functions)
     // ============================================================
-    function buildExportWorldbookEntries() {
-      return worldbookEntries.map(function(e, i) {
-        var keys = Array.isArray(e.keys) ? e.keys.slice() : [];
-        var secondaryKeys = Array.isArray(e.secondaryKeys) ? e.secondaryKeys.slice() : [];
-        var comment = String(e.comment || '');
-        var content = String(e.content || '');
-        var isConstant = e.strategy === 'constant';
-        var isSelective = isConstant ? false : (keys.length > 0 || e.strategy === 'selective' || e.strategy === 'vectorized' || !!e.vectorized);
-        var enabled = e.disable !== true && e.enabled !== false;
-        return {
-          keys: keys,
-          secondary_keys: secondaryKeys,
-          comment: comment,
-          content: content,
-          extensions: {},
-          enabled: enabled,
-          insertion_order: safeInt(e.order, 100),
-          case_sensitive: e.caseSensitive !== undefined ? !!e.caseSensitive : false,
-          name: comment,
-          priority: safeInt(e.prob, 100),
-          id: i,
-          selective: isSelective,
-          constant: isConstant,
-          position: safeInt(e.position, 4)
-        };
-      });
-    }
-
-    function buildExportCharacterBook() {
-      var meta = {};
-      if (window.__importedWorldbookMeta__) {
-        Object.keys(window.__importedWorldbookMeta__).forEach(function(key) {
-          meta[key] = window.__importedWorldbookMeta__[key];
-        });
-      }
-      if (window.__importedCardMeta__) {
-        Object.keys(window.__importedCardMeta__).forEach(function(key) {
-          meta[key] = window.__importedCardMeta__[key];
-        });
-      }
-      return {
-        name: wbName.value.trim() || '',
-        description: meta.characterBookDescription || meta.worldbookDescription || '',
-        scan_depth: meta.characterBookScanDepth !== undefined ? meta.characterBookScanDepth : (meta.worldbookScanDepth !== undefined ? meta.worldbookScanDepth : 3),
-        token_budget: meta.characterBookTokenBudget !== undefined ? meta.characterBookTokenBudget : (meta.worldbookTokenBudget !== undefined ? meta.worldbookTokenBudget : 1800000000),
-        recursive_scanning: meta.characterBookRecursiveScanning !== undefined ? !!meta.characterBookRecursiveScanning : (meta.worldbookRecursiveScanning !== undefined ? !!meta.worldbookRecursiveScanning : true),
-        extensions: {},
-        entries: buildExportWorldbookEntries()
-      };
-    }
-
-    function generateSillyTavernJSON() {
-      var cn = charName.value.trim() || '';
-      var altG = (window.__altGreetings__ || []).filter(function(g) { return g && g.trim(); });
-      var meta = {};
-      if (window.__importedWorldbookMeta__) {
-        Object.keys(window.__importedWorldbookMeta__).forEach(function(key) {
-          meta[key] = window.__importedWorldbookMeta__[key];
-        });
-      }
-      if (window.__importedCardMeta__) {
-        Object.keys(window.__importedCardMeta__).forEach(function(key) {
-          meta[key] = window.__importedCardMeta__[key];
-        });
-      }
-      var tags = Array.isArray(meta.tags) ? meta.tags.slice() : [];
-      return {
-        spec: 'chara_card_v3',
-        spec_version: '3.0',
-        data: {
-          name: cn,
-          description: charDesc.value || '',
-          personality: meta.personality || '',
-          scenario: meta.scenario || '',
-          first_mes: firstMes.value || '',
-          mes_example: meta.mesExample || '',
-          creator_notes: creatorNotes.value || '',
-          alternate_greetings: altG,
-          character_book: buildExportCharacterBook(),
-          tags: tags,
-          creator: meta.creator || '',
-          character_version: meta.characterVersion || '1.0.0',
-          nickname: meta.nickname || cn || ''
-        }
-      };
-    }
-
-    function generateVanillaCharacterJSON() {
-      var cn = charName.value.trim() || '';
-      var altG = (window.__altGreetings__ || []).filter(function(g) { return g && g.trim(); });
-      var meta = {};
-      if (window.__importedWorldbookMeta__) {
-        Object.keys(window.__importedWorldbookMeta__).forEach(function(key) {
-          meta[key] = window.__importedWorldbookMeta__[key];
-        });
-      }
-      if (window.__importedCardMeta__) {
-        Object.keys(window.__importedCardMeta__).forEach(function(key) {
-          meta[key] = window.__importedCardMeta__[key];
-        });
-      }
-      return {
-        name: cn,
-        description: charDesc.value || '',
-        personality: meta.personality || '',
-        scenario: meta.scenario || '',
-        first_mes: firstMes.value || '',
-        mes_example: meta.mesExample || '',
-        creator_notes: creatorNotes.value || '',
-        alternate_greetings: altG,
-        character_book: buildExportCharacterBook(),
-        tags: Array.isArray(meta.tags) ? meta.tags.slice() : [],
-        creator: meta.creator || '',
-        character_version: meta.characterVersion || '1.0.0',
-        nickname: meta.nickname || cn || '',
-        gender: meta.gender || 'N/A',
-        statusBlockConfig: meta.statusBlockConfig || {
-          description: '',
-          properties: {},
-          required: []
-        }
-      };
-    }
-
     function downloadJsonFile(payload, filename) {
       var j = JSON.stringify(payload, null, 2);
       var a = document.createElement('a');
@@ -2438,21 +1532,25 @@ window.__setImportedAvatar__ = function(src, skipCommit, exportBase64) {
       el.addEventListener('input', debouncedUpdateAndSave);
     });
 
-    window.generateSillyTavernJSON = generateSillyTavernJSON;
-    window.generateVanillaCharacterJSON = generateVanillaCharacterJSON;
-    window.downloadWorldbookMarkdown = downloadWorldbookMarkdown;
+    window.generateSillyTavernJSON = function() { return generateSillyTavernJSON(buildExportContext()); };
+    window.generateVanillaCharacterJSON = function() { return generateVanillaCharacterJSON(buildExportContext()); };
+    window.downloadWorldbookMarkdown = function() {
+      var nameSource = (wbName && wbName.value && wbName.value.trim()) || (charName && charName.value && charName.value.trim()) || 'worldbook';
+      downloadWorldbookMarkdown(nameSource, worldbookEntries);
+    };
     window.exportCardByFormat = function(format) {
       if (format === 'vanilla') {
-        downloadJsonFile(generateVanillaCharacterJSON(), (charName.value || 'card') + '.json');
+        downloadJsonFile(generateVanillaCharacterJSON(buildExportContext()), (charName.value || 'card') + '.json');
         return;
       }
       if (format === 'st') {
-        downloadJsonFile(generateSillyTavernJSON(), (charName.value || 'card') + '.json');
+        downloadJsonFile(generateSillyTavernJSON(buildExportContext()), (charName.value || 'card') + '.json');
         return;
       }
       if (format === 'worldbook-md') {
         if (!worldbookEntries.length) return alert('世界书为空，暂无可导出的词条。');
-        downloadWorldbookMarkdown();
+        var nameSource = (wbName && wbName.value && wbName.value.trim()) || (charName && charName.value && charName.value.trim()) || 'worldbook';
+        downloadWorldbookMarkdown(nameSource, worldbookEntries);
         return;
       }
     };
