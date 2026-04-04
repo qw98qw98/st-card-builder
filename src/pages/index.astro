@@ -101,6 +101,8 @@ import WorldbookPanel from '../components/WorldbookPanel.astro';
     var btnExportMenu        = document.getElementById('btnExportMenu');
     var exportFormatMenu     = document.getElementById('exportFormatMenu');
     var btnExportPNG         = document.getElementById('btnExportPNG');
+    var btnWorldbookImportJump = document.getElementById('btnWorldbookImportJump');
+    var importExportCenter   = document.getElementById('importExportCenter');
     var charName             = document.getElementById('charName');
     var wbName               = document.getElementById('wbName');
     var charDesc             = document.getElementById('charDesc');
@@ -130,6 +132,8 @@ import WorldbookPanel from '../components/WorldbookPanel.astro';
     var wbPreviewSummary     = document.getElementById('wbPreviewSummary');
     var wbPreviewNotice      = document.getElementById('wbPreviewNotice');
     var wbPreviewEmpty       = document.getElementById('wbPreviewEmpty');
+    var wbPreviewEmptyTitle  = document.getElementById('wbPreviewEmptyTitle');
+    var wbPreviewEmptyDesc   = document.getElementById('wbPreviewEmptyDesc');
     var wbPreviewView        = document.getElementById('wbPreviewView');
     var wbPreviewListCount   = document.getElementById('wbPreviewListCount');
     var wbPreviewSource      = document.getElementById('wbPreviewSource');
@@ -621,9 +625,14 @@ import WorldbookPanel from '../components/WorldbookPanel.astro';
         wbPreviewView.innerHTML = '';
         setPreviewCopyButtonsEnabled(false);
         setPreviewDetail({}, -1, 0, posMap);
-        setPreviewNotice(worldbookEntries.length ? '当前筛选没有结果，换个来源标签试试。' : '还没有可预览条目，先添加或导入一些内容。');
-        if (wbPreviewEmpty) {
-          wbPreviewEmpty.textContent = worldbookEntries.length ? '当前筛选没有可预览条目，换个来源标签看看。' : '还没有可预览条目。';
+        setPreviewNotice(worldbookEntries.length ? '切换来源标签，或直接拖入文件继续导入。' : '拖入 .json 或 .png 就能直接导入。');
+        if (wbPreviewEmptyTitle) {
+          wbPreviewEmptyTitle.textContent = worldbookEntries.length ? '当前筛选没有条目' : '拖入文件即可导入';
+        }
+        if (wbPreviewEmptyDesc) {
+          wbPreviewEmptyDesc.textContent = worldbookEntries.length
+            ? '切换来源标签，或直接拖入文件继续导入。'
+            : '支持 .json 和 .png，直接复用导入中心逻辑。';
         }
         return;
       }
@@ -1149,6 +1158,50 @@ window.__setImportedAvatar__ = function(src, skipCommit, exportBase64) {
       });
     }
 
+    function bindImportDropTarget(target, options) {
+      options = options || {};
+      if (!target) return;
+      var activeClass = options.activeClass || 'iec-drop-active';
+
+      function setActive(active) {
+        if (!target.classList) return;
+        target.classList.toggle(activeClass, !!active);
+      }
+
+      ['dragenter', 'dragover'].forEach(function(eventName) {
+        target.addEventListener(eventName, function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          setActive(true);
+          if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+        });
+      });
+
+      ['dragleave', 'dragend', 'drop'].forEach(function(eventName) {
+        target.addEventListener(eventName, function(e) {
+          if (eventName === 'drop') {
+            e.preventDefault();
+            e.stopPropagation();
+            setActive(false);
+
+            var dt = e.dataTransfer;
+            if (dt && dt.files && dt.files.length && typeof options.onFile === 'function') {
+              options.onFile(dt.files[0], e);
+              return;
+            }
+            if (dt && dt.getData) {
+              var text = dt.getData('text/plain') || dt.getData('text') || '';
+              if (text.trim() && typeof options.onText === 'function') {
+                options.onText(text, e);
+              }
+            }
+            return;
+          }
+          setActive(false);
+        });
+      });
+    }
+
     function importCardOrWorldbookText(text, fallbackName) {
       var payload = parseWorldbookImportJSON(text);
       if (isPureWorldbookPayload(payload)) {
@@ -1163,6 +1216,17 @@ window.__setImportedAvatar__ = function(src, skipCommit, exportBase64) {
       }
       applyImportedWorldbook(payload, fallbackName);
     }
+
+    window.__importAssetFromFile = handleImportFile;
+    window.__importAssetFromText = importCardOrWorldbookText;
+    window.__openImportExportCenter = function() {
+      if (typeof window.__setWorkspaceTab__ === 'function') {
+        window.__setWorkspaceTab__('core');
+      }
+      if (importExportCenter && importExportCenter.scrollIntoView) {
+        importExportCenter.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    };
 
     function importPngAsset(file, fallbackName) {
       showImportStatus('⏳ 解析 PNG...', 'info');
@@ -1251,49 +1315,60 @@ window.__setImportedAvatar__ = function(src, skipCommit, exportBase64) {
     }
 
     if (importAssetText) {
-      var importDropTarget = importAssetText.closest('.ie-import-card') || importAssetText.closest('.import-export-center') || importAssetText;
+      bindImportDropTarget(importAssetText.closest('.ie-import-card') || importAssetText.closest('.import-export-center') || importAssetText, {
+        onFile: function(file) {
+          handleImportFile(file);
+        },
+        onText: function(text) {
+          importAssetText.value = text;
+          try {
+            importCardOrWorldbookText(text, '拖入内容');
+          } catch (err) {
+            showImportStatus('❌ 导入失败：' + err.message, 'error');
+          }
+        }
+      });
+    }
 
-      function setImportDropActive(active) {
-        if (!importDropTarget || !importDropTarget.classList) return;
-        importDropTarget.classList.toggle('iec-drop-active', !!active);
-      }
-
-      ['dragenter', 'dragover'].forEach(function(eventName) {
-        importDropTarget.addEventListener(eventName, function(e) {
-          e.preventDefault();
-          e.stopPropagation();
-          setImportDropActive(true);
-          if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
-        });
+    if (wbPreviewEmpty) {
+      bindImportDropTarget(wbPreviewEmpty, {
+        onFile: function(file) {
+          handleImportFile(file);
+        },
+        onText: function(text) {
+          try {
+            importCardOrWorldbookText(text, '拖入内容');
+          } catch (err) {
+            showImportStatus('❌ 导入失败：' + err.message, 'error');
+          }
+        }
       });
 
-      ['dragleave', 'dragend', 'drop'].forEach(function(eventName) {
-        importDropTarget.addEventListener(eventName, function(e) {
-          if (eventName === 'drop') {
-            e.preventDefault();
-            e.stopPropagation();
-            setImportDropActive(false);
+      wbPreviewEmpty.addEventListener('click', function(e) {
+        var interactive = e.target && e.target.closest && e.target.closest('button, a, input, textarea, select, label');
+        if (interactive) return;
+        if (typeof window.__openImportExportCenter === 'function') {
+          window.__openImportExportCenter();
+        }
+      });
 
-            var dt = e.dataTransfer;
-            if (dt && dt.files && dt.files.length) {
-              handleImportFile(dt.files[0]);
-              return;
-            }
-            if (dt && dt.getData) {
-              var text = dt.getData('text/plain') || dt.getData('text') || '';
-              if (text.trim()) {
-                importAssetText.value = text;
-                try {
-                  importCardOrWorldbookText(text, '拖入内容');
-                } catch (err) {
-                  showImportStatus('❌ 导入失败：' + err.message, 'error');
-                }
-              }
-            }
-            return;
+      wbPreviewEmpty.addEventListener('keydown', function(e) {
+        var interactive = e.target && e.target.closest && e.target.closest('button, a, input, textarea, select, label');
+        if (interactive) return;
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          if (typeof window.__openImportExportCenter === 'function') {
+            window.__openImportExportCenter();
           }
-          setImportDropActive(false);
-        });
+        }
+      });
+    }
+
+    if (btnWorldbookImportJump) {
+      btnWorldbookImportJump.addEventListener('click', function() {
+        if (typeof window.__openImportExportCenter === 'function') {
+          window.__openImportExportCenter();
+        }
       });
     }
 

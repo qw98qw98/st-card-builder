@@ -28,6 +28,8 @@ export function initWorkspaceTabs(): void {
     window.scrollTo({ top: 0, behavior: 'auto' });
   }
 
+  (window as any).__setWorkspaceTab__ = activate;
+
   var initial = 'core';
   try {
     var saved = localStorage.getItem(STORAGE_KEY);

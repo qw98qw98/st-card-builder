@@ -147,7 +147,23 @@
               <button class="wb-filter-pill" type="button" data-wb-filter="import">导入 <span data-filter-count="import">0</span></button>
             </div>
 
-            <div class="wb-preview-empty" id="wbPreviewEmpty">还没有可预览条目。</div>
+            <div
+              id="wbPreviewEmpty"
+              class="wb-preview-empty wb-preview-import-entry"
+              role="button"
+              tabindex="0"
+              aria-label="拖入 .json 或 .png 文件导入世界书，或前往导入导出中心"
+            >
+              <div class="wb-preview-empty-copy">
+                <div class="wb-preview-empty-title" id="wbPreviewEmptyTitle">拖入文件即可导入</div>
+                <div class="wb-preview-empty-desc" id="wbPreviewEmptyDesc">
+                  支持 .json 和 .png，直接复用导入中心逻辑。
+                </div>
+              </div>
+              <div class="wb-preview-empty-actions">
+                <button id="btnWorldbookImportJump" class="btn wb-preview-import-btn" type="button">前往导入中心</button>
+              </div>
+            </div>
             <div class="wb-preview-view" id="wbPreviewView" hidden role="listbox" tabindex="0" aria-label="世界书条目列表"></div>
           </aside>
 
@@ -760,17 +776,88 @@
   }
 
   .wb-preview-empty {
-    border: 1px dashed var(--border);
-    border-radius: 16px;
-    background: var(--surface-2);
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0)), var(--surface-2);
     color: var(--muted);
     font-size: 0.78rem;
     line-height: 1.6;
-    padding: 16px;
-    min-height: 120px;
+    padding: 20px 18px;
+    min-height: 164px;
     display: flex;
+    align-items: stretch;
+    justify-content: space-between;
+    gap: 18px;
+  }
+
+  .wb-preview-empty::before {
+    content: '';
+    position: absolute;
+    left: 18px;
+    top: 18px;
+    bottom: 18px;
+    width: 3px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, rgba(56, 189, 248, 0.95), rgba(139, 92, 246, 0.72));
+    opacity: 0.9;
+  }
+
+  .wb-preview-import-entry {
     align-items: center;
-    justify-content: center;
+    cursor: copy;
+    transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+  }
+
+  .wb-preview-import-entry:hover {
+    border-color: rgba(56, 189, 248, 0.45);
+    transform: translateY(-1px);
+  }
+
+  .wb-preview-import-entry.iec-drop-active {
+    border-color: rgba(56, 189, 248, 0.82);
+    background: linear-gradient(180deg, rgba(56, 189, 248, 0.06), rgba(255, 255, 255, 0.02)), var(--surface-2);
+    box-shadow: inset 0 0 0 1px rgba(56, 189, 248, 0.16);
+    transform: translateY(-1px);
+  }
+
+  .wb-preview-empty-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    min-width: 0;
+    flex: 1;
+    padding-left: 14px;
+  }
+
+  .wb-preview-empty-title {
+    font-size: 1.05rem;
+    font-weight: 750;
+    color: var(--text);
+  }
+
+  .wb-preview-empty-desc {
+    font-size: 0.88rem;
+    line-height: 1.6;
+    color: var(--muted);
+    max-width: 34ch;
+  }
+
+  .wb-preview-empty-actions {
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+    flex: 0 0 auto;
+    align-self: stretch;
+  }
+
+  .wb-preview-import-btn {
+    width: auto !important;
+    padding: 9px 16px !important;
+    border-radius: 999px !important;
+    align-self: flex-end;
+    white-space: nowrap;
   }
 
   .wb-preview-view {
@@ -877,6 +964,27 @@
 
     .wb-preview-layout {
       grid-template-columns: 1fr;
+    }
+
+    .wb-preview-empty {
+      flex-direction: column;
+      align-items: flex-start;
+      padding-left: 18px;
+    }
+
+    .wb-preview-empty::before {
+      top: 18px;
+      bottom: auto;
+      left: 18px;
+      right: 18px;
+      width: auto;
+      height: 3px;
+    }
+
+    .wb-preview-empty-actions {
+      width: 100%;
+      justify-content: flex-start;
+      align-self: auto;
     }
   }
 </style>
