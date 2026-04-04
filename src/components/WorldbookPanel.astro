@@ -1,415 +1,882 @@
 ---
 ---
-<div class="panel area-worldbook">
-  <h2>📖 世界书条目</h2>
-
-  <!-- AI 单条生成 -->
-  <div style="background: rgba(139, 92, 246, 0.06); border: 1px dashed rgba(139, 92, 246, 0.3); padding: 16px; border-radius: 10px; margin-bottom: 20px;">
-    <h4 style="margin: 0 0 8px 0; color: #c4b5fd; font-size: 0.9rem;">🤖 AI 单条生成（自动叠加）</h4>
-    <p style="font-size: 0.72rem; color: #64748b; margin: 0 0 12px 0;">AI 会自动读取已有词条，确保世界观连贯且不重复。</p>
-    <div style="display: flex; gap: 10px;">
-      <input type="text" id="wbSinglePrompt" placeholder="定向要求(可选)，如：写一把专属武器..." style="flex: 1;" />
-      <button id="btnAiSingleWb" class="btn" style="width: auto; margin: 0; background: linear-gradient(135deg, #8b5cf6, #6d28d9); white-space: nowrap;">🎲 生成 1 条</button>
+<div class="panel area-worldbook wb-panel">
+  <div class="wb-head">
+    <div class="wb-head-top">
+      <h2>📖 世界书</h2>
+      <div class="wb-head-meta">
+        <span id="wbTotalCount" class="wb-pill">0 条</span>
+        <span id="wbGenCount" class="wb-pill wb-pill-generated">生成 0</span>
+        <span id="wbManualCount" class="wb-pill wb-pill-manual">手动 0</span>
+        <span id="wbImportCount" class="wb-pill wb-pill-import">导入 0</span>
+      </div>
     </div>
-    <div style="display: flex; align-items: center; gap: 16px; margin-top: 12px; flex-wrap: wrap;">
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <input type="checkbox" id="wbIncludeCharData" checked />
-        <label for="wbIncludeCharData" style="margin: 0; color: #94a3b8; font-size: 0.78rem; cursor: pointer; font-weight: normal;">融合【角色名与描述】</label>
-      </div>
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <input type="checkbox" id="wbIncludeOtherEntries" checked />
-        <label for="wbIncludeOtherEntries" style="margin: 0; color: #94a3b8; font-size: 0.78rem; cursor: pointer; font-weight: normal;">融合【已有世界书条目】</label>
-      </div>
+    <p class="wb-head-desc">编辑模式用于快速修改，预览模式用于上方看详情、下方看全量词条索引。生成、手动编辑、导入条目分开看，长设定可直接阅读和复制。</p>
+  </div>
+
+  <div class="wb-mode-switch">
+    <div class="wb-mode-tabs" role="tablist" aria-label="世界书模式">
+      <button class="wb-mode-tab is-active" type="button" role="tab" aria-selected="true" data-wb-mode="edit">编辑模式</button>
+      <button class="wb-mode-tab" type="button" role="tab" aria-selected="false" data-wb-mode="preview">预览模式</button>
     </div>
   </div>
 
-  <!-- 手动录入区 -->
-  <div id="wbManualEditArea" style="background: rgba(0,0,0,0.2); padding: 16px; border-radius: 10px; margin-bottom: 16px; border: 1px solid #1e293b; transition: box-shadow 0.35s ease, border-color 0.35s ease;">
-    <h4 style="margin: 0 0 12px 0; color: #64748b; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em;">✍️ 手动录入 / 修改区</h4>
+  <div class="wb-shell">
+    <aside class="wb-column wb-browser">
+      <div class="wb-card wb-list-card">
+        <div class="wb-card-head">
+          <div>
+            <h3>条目浏览</h3>
+            <p class="wb-card-desc">先筛选，再点条目进入编辑。</p>
+          </div>
+        </div>
 
-    <div class="form-group">
-      <label>条目标题</label>
-      <input type="text" id="entryComment" placeholder="例如：===特殊武器===" />
-    </div>
+        <div class="wb-filter-bar" role="tablist" aria-label="世界书筛选">
+          <button class="wb-filter-pill is-active" type="button" data-wb-filter="all">全部 <span data-filter-count="all">0</span></button>
+          <button class="wb-filter-pill" type="button" data-wb-filter="ai">生成 <span data-filter-count="ai">0</span></button>
+          <button class="wb-filter-pill" type="button" data-wb-filter="manual">手动 <span data-filter-count="manual">0</span></button>
+          <button class="wb-filter-pill" type="button" data-wb-filter="import">导入 <span data-filter-count="import">0</span></button>
+        </div>
 
-    <div class="form-group">
-      <label>设定内容</label>
-      <textarea id="entryContent" placeholder="具体设定详情..."></textarea>
-    </div>
-
-    <div class="form-group">
-      <label>触发词 — 多个用英文逗号隔开</label>
-      <input type="text" id="entryKeys" placeholder="空为常驻，有词为触发" />
-    </div>
-
-    <div class="grid-2">
-      <div class="form-group">
-        <label>触发策略</label>
-        <select id="entryStrategy">
-          <option value="constant">常驻</option>
-          <option value="selective" selected>关键词</option>
-          <option value="vectorized">向量化</option>
-        </select>
+        <div id="entriesList" class="wb-entry-list"></div>
       </div>
-      <div class="form-group">
-        <label>插入位置</label>
-        <select id="entryPosition">
-          <option value="0">0 — 之前</option>
-          <option value="1">1 — 之后</option>
-          <option value="2">2 — 前 EM</option>
-          <option value="3">3 — 后 EM</option>
-          <option value="4" selected>4 — 深度</option>
-          <option value="5">5 — 之前 AN</option>
-          <option value="6">6 — 之后 AN</option>
-        </select>
-      </div>
-    </div>
+    </aside>
 
-    <div class="grid-3">
-      <div class="form-group">
-        <label>深度</label>
-        <input type="number" id="entryDepth" value="4" min="0" />
-      </div>
-      <div class="form-group">
-        <label>角色</label>
-        <select id="entryRole">
-          <option value="0">系统</option>
-          <option value="1">用户</option>
-          <option value="2">助手</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>顺序</label>
-        <input type="number" id="entryOrder" value="100" />
-      </div>
-    </div>
+    <section class="wb-column wb-stage">
+      <div class="wb-mode-panel wb-mode-edit" data-wb-mode-panel="edit">
+        <div class="wb-card wb-editor-card">
+          <div class="wb-card-head">
+            <div>
+              <h3>条目编辑</h3>
+              <p id="wbEditorHint" class="wb-card-desc">点击左侧条目后在这里修改，默认只展示常用字段，高级参数收在折叠区。</p>
+            </div>
+            <span id="wbEditorSource" class="wb-pill wb-pill-neutral">新建</span>
+          </div>
 
-    <div class="form-group">
-      <label>概率 (%)</label>
-      <input type="number" id="entryProb" value="100" min="1" max="100" />
-    </div>
+          <div id="wbManualEditArea" class="wb-form-grid">
+            <div class="form-group">
+              <label>条目标题</label>
+              <input type="text" id="entryComment" placeholder="例如：===特殊武器===" />
+            </div>
 
-    <button id="btnAddEntry" class="btn btn-add">➕ 保存到列表</button>
+            <div class="form-group">
+              <label>设定内容</label>
+              <textarea id="entryContent" placeholder="具体设定详情..."></textarea>
+            </div>
+
+            <div class="form-group">
+              <label>触发词 — 多个用英文逗号隔开</label>
+              <input type="text" id="entryKeys" placeholder="空为常驻，有词为触发" />
+            </div>
+
+            <details class="wb-advanced-settings">
+              <summary>高级设置</summary>
+              <div class="wb-advanced-grid">
+                <div class="grid-2">
+                  <div class="form-group">
+                    <label>触发策略</label>
+                    <select id="entryStrategy">
+                      <option value="constant">常驻</option>
+                      <option value="selective" selected>关键词</option>
+                      <option value="vectorized">向量化</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>插入位置</label>
+                    <select id="entryPosition">
+                      <option value="0">0 — 之前</option>
+                      <option value="1">1 — 之后</option>
+                      <option value="2">2 — 前 EM</option>
+                      <option value="3">3 — 后 EM</option>
+                      <option value="4" selected>4 — 深度</option>
+                      <option value="5">5 — 之前 AN</option>
+                      <option value="6">6 — 之后 AN</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="grid-3">
+                  <div class="form-group">
+                    <label>深度</label>
+                    <input type="number" id="entryDepth" value="4" min="0" />
+                  </div>
+                  <div class="form-group">
+                    <label>角色</label>
+                    <select id="entryRole">
+                      <option value="0">系统</option>
+                      <option value="1">用户</option>
+                      <option value="2">助手</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>顺序</label>
+                    <input type="number" id="entryOrder" value="100" />
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label>概率 (%)</label>
+                  <input type="number" id="entryProb" value="100" min="1" max="100" />
+                </div>
+              </div>
+            </details>
+
+            <div class="wb-form-actions">
+              <button id="btnAddEntry" class="btn btn-add">➕ 保存到列表</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="wb-mode-panel wb-mode-preview" data-wb-mode-panel="preview" hidden>
+        <div class="wb-preview-layout">
+          <aside class="wb-preview-pane wb-preview-list-pane">
+            <div class="wb-card-head wb-preview-head">
+              <div>
+                <h3>条目浏览</h3>
+                <p class="wb-card-desc">上下键、Home/End、首字输入都能切换。左侧列表可快速扫读，右侧专注完整内容。</p>
+              </div>
+              <span id="wbPreviewListCount" class="wb-pill">0 条</span>
+            </div>
+
+            <div class="wb-preview-filter-bar" role="tablist" aria-label="世界书筛选">
+              <button class="wb-filter-pill is-active" type="button" data-wb-filter="all">全部 <span data-filter-count="all">0</span></button>
+              <button class="wb-filter-pill" type="button" data-wb-filter="ai">生成 <span data-filter-count="ai">0</span></button>
+              <button class="wb-filter-pill" type="button" data-wb-filter="manual">手动 <span data-filter-count="manual">0</span></button>
+              <button class="wb-filter-pill" type="button" data-wb-filter="import">导入 <span data-filter-count="import">0</span></button>
+            </div>
+
+            <div class="wb-preview-empty" id="wbPreviewEmpty">还没有可预览条目。</div>
+            <div class="wb-preview-view" id="wbPreviewView" hidden role="listbox" tabindex="0" aria-label="世界书条目列表"></div>
+          </aside>
+
+          <section class="wb-preview-pane wb-preview-reader-pane">
+            <div class="wb-card-head wb-preview-head">
+              <div>
+                <h3>完整阅读</h3>
+                <p id="wbPreviewSummary" class="wb-card-desc">选择任意条目后，这里会展示完整标题、关键词和设定内容。</p>
+                <p id="wbPreviewNotice" class="wb-preview-notice">键盘：↑↓ 切换，Home/End 跳转，输入首字快速定位。</p>
+              </div>
+              <div class="wb-preview-copy-group">
+                <button id="btnCopyPreviewTitle" class="btn wb-copy-btn" type="button">复制标题</button>
+                <button id="btnCopyPreviewKeys" class="btn wb-copy-btn" type="button">复制触发词</button>
+                <button id="btnCopyPreviewContent" class="btn wb-copy-btn" type="button">复制设定</button>
+                <button id="btnCopyPreviewAll" class="btn wb-copy-btn" type="button">复制整条</button>
+              </div>
+            </div>
+
+            <div class="wb-preview-meta-row">
+              <span id="wbPreviewSource" class="wb-pill wb-pill-neutral">来源</span>
+              <span id="wbPreviewStrategy" class="wb-chip">策略</span>
+              <span id="wbPreviewPosition" class="wb-chip">位置</span>
+              <span id="wbPreviewDepth" class="wb-chip">深度</span>
+              <span id="wbPreviewOrder" class="wb-chip">顺序</span>
+              <span id="wbPreviewProb" class="wb-chip">概率</span>
+            </div>
+
+            <div class="wb-preview-detail-grid">
+              <section class="wb-preview-block">
+                <div class="wb-preview-block-head">
+                  <label>标题</label>
+                </div>
+                <div id="wbPreviewTitle" class="wb-preview-title"></div>
+              </section>
+
+              <section class="wb-preview-block">
+                <div class="wb-preview-block-head">
+                  <label>触发词</label>
+                </div>
+                <div id="wbPreviewKeys" class="wb-preview-keys"></div>
+              </section>
+
+              <section class="wb-preview-block wb-preview-content-block">
+                <div class="wb-preview-block-head">
+                  <label>设定内容</label>
+                </div>
+                <pre id="wbPreviewContent" class="wb-preview-content"></pre>
+              </section>
+            </div>
+          </section>
+        </div>
+      </div>
+    </section>
   </div>
-
-  <!-- ★ AI 智能整理（美化版） -->
-  <div class="wb-organize-wrap">
-    <div class="organize-header-row">
-      <div class="organize-icon-wrap">
-        <span class="organize-icon">🧹</span>
-      </div>
-      <div class="organize-title-wrap">
-        <span class="organize-title">AI 智能整理</span>
-        <span class="organize-subtitle">自动优化深度 · 顺序 · 概率</span>
-      </div>
-      <button id="btnAiOrganize" class="btn-organize-magic">
-        <span class="btn-magic-icon">⚡</span>
-        <span class="btn-magic-text">一键整理</span>
-      </button>
-    </div>
-    <div id="organizeStatus" class="organize-status-bar"></div>
-  </div>
-  <div id="organizePreview" class="organize-preview-container" style="display: none;"></div>
-
-  <!-- 条目列表 -->
-  <div id="entriesList"></div>
 </div>
 
-<style>
-  /* ===== AI 智能整理美化版 ===== */
-
-
-@keyframes organize-shine {
-  0%   { background-position: 200% center; }
-  50%  { background-position: -200% center; }
-  100% { background-position: 200% center; }
-}
-
-
-  .organize-header-row {
+<style is:global>
+  .wb-panel {
     display: flex;
-    align-items: center;
-    gap: 12px;
-    position: relative;
-    z-index: 1;
+    flex-direction: column;
+    gap: 16px;
   }
 
-  .organize-icon-wrap {
-    width: 40px;
-    height: 40px;
-    background: linear-gradient(145deg, #fbbf24, #f59e0b);
-    border-radius: 11px;
+  .wb-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px 14px;
+    align-items: start;
+  }
+
+  .wb-head-top {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 3px 10px rgba(251, 191, 36, 0.35), inset 0 1px 0 rgba(255,255,255,0.25);
-    flex-shrink: 0;
-  }
-  .organize-icon {
-    font-size: 1.2rem;
-    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.25));
+    justify-content: space-between;
+    gap: 14px;
+    align-items: flex-start;
+    flex-wrap: wrap;
   }
 
-  .organize-title-wrap {
-    flex: 1;
+  .wb-head-desc {
+    grid-column: 1 / -1;
+    margin: 0;
+    font-size: 0.94rem;
+    color: var(--muted);
+    max-width: none;
+    line-height: 1.7;
+  }
+
+  .wb-head-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .wb-mode-switch {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .wb-mode-tabs {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .wb-mode-tab {
+    appearance: none;
+    border-radius: 999px;
+    padding: 8px 14px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .wb-mode-tab.is-active {
+    background: var(--accent);
+    color: #fff;
+    border-color: transparent;
+  }
+
+  .wb-mode-actions {
+    display: flex;
+    justify-content: flex-start;
+  }
+
+  .wb-export-btn {
+    width: auto !important;
+    padding: 8px 14px !important;
+    border-radius: 999px !important;
+    background: var(--surface-2) !important;
+    border: 1px solid var(--border) !important;
+    color: var(--text) !important;
+    font-size: 0.76rem !important;
+    font-weight: 700 !important;
+  }
+
+  .wb-export-btn:hover {
+    background: var(--surface-3) !important;
+    border-color: var(--border-strong) !important;
+  }
+
+  .wb-shell {
+    display: grid;
+    grid-template-columns: minmax(300px, 0.84fr) minmax(460px, 1.16fr);
+    gap: 16px;
+    align-items: start;
+  }
+
+  .wb-shell.is-preview-mode {
+    grid-template-columns: 1fr;
+  }
+
+  .wb-shell.is-preview-mode .wb-browser {
+    display: none;
+  }
+
+  .wb-column {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
     min-width: 0;
   }
-  .organize-title {
-    display: block;
-    font-size: 0.88rem;
-    font-weight: 700;
-    color: #fcd34d;
-    letter-spacing: 0.03em;
-    text-shadow: 0 0 20px rgba(251, 191, 36, 0.3);
+
+  .wb-stage {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
   }
-  .organize-subtitle {
-    display: block;
+
+  .wb-mode-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-height: 0;
+  }
+
+  .wb-mode-panel[hidden] {
+    display: none !important;
+  }
+
+  .wb-shell.is-preview-mode .wb-mode-edit {
+    display: none !important;
+  }
+
+  .wb-shell.is-preview-mode .wb-mode-preview {
+    display: flex !important;
+  }
+
+  .wb-card {
+    background: var(--surface-strong);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 16px;
+  }
+
+  .wb-list-card {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+  }
+
+  .wb-card-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: flex-start;
+    margin-bottom: 12px;
+  }
+
+  .wb-card-head h3 {
+    margin: 0;
+    font-size: 0.96rem;
+    color: var(--text);
+  }
+
+  .wb-card-desc {
+    margin: 4px 0 0;
+    font-size: 0.72rem;
+    color: var(--muted);
+    line-height: 1.45;
+  }
+
+  .wb-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    white-space: nowrap;
+  }
+
+  .wb-pill-generated {
+    color: var(--accent);
+  }
+
+  .wb-pill-manual {
+    color: var(--accent-2);
+  }
+
+  .wb-pill-import {
+    color: var(--muted);
+  }
+
+  .wb-pill-neutral {
+    color: var(--muted);
+  }
+
+  .wb-filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .wb-filter-pill {
+    appearance: none;
+    border-radius: 999px;
+    padding: 7px 12px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+  }
+
+  .wb-filter-pill span {
+    font-variant-numeric: tabular-nums;
+    color: var(--muted);
+  }
+
+  .wb-entry-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .wb-entry-empty {
+    padding: 16px;
+    border-radius: 14px;
+    border: 1px dashed var(--border);
+    color: var(--muted);
+    font-size: 0.78rem;
+    line-height: 1.5;
+    background: var(--surface-2);
+  }
+
+  .wb-entry {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+  }
+
+  .wb-entry.is-selected {
+    border-color: var(--border-strong);
+    background: var(--surface-3);
+  }
+
+  .wb-entry-body {
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .wb-entry-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  .wb-entry-top-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: flex-end;
+    align-items: center;
+  }
+
+  .wb-entry-title {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.35;
+  }
+
+  .wb-entry-meta {
+    margin-top: 4px;
+    font-size: 0.7rem;
+    color: var(--muted);
+  }
+
+  .wb-entry-preview {
+    font-size: 0.78rem;
+    color: var(--muted);
+    line-height: 1.55;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .wb-entry-keys {
+    font-size: 0.7rem;
+    color: var(--muted);
+  }
+
+  .wb-entry-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .wb-btn-edit,
+  .wb-btn-delete {
+    width: auto !important;
+    padding: 6px 10px !important;
+    font-size: 0.74rem !important;
+    border-radius: 999px !important;
+  }
+
+  .wb-btn-edit {
+    background: var(--surface-2) !important;
+    color: var(--text) !important;
+    border: 1px solid var(--border) !important;
+  }
+
+  .wb-btn-delete {
+    background: var(--surface-2) !important;
+    color: var(--danger) !important;
+    border: 1px solid var(--border) !important;
+  }
+
+  .wb-chip,
+  .wb-source-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--surface);
     font-size: 0.68rem;
-    color: #94a3b8;
+    font-weight: 700;
+    color: var(--muted);
+  }
+
+  .wb-source-generated {
+    color: var(--accent);
+    background: rgba(67, 97, 238, 0.08);
+  }
+
+  .wb-source-manual {
+    color: var(--accent-2);
+    background: rgba(15, 118, 110, 0.08);
+  }
+
+  .wb-source-import {
+    color: var(--muted);
+    background: rgba(148, 163, 184, 0.08);
+  }
+
+  .wb-source-skeleton {
+    color: var(--warning);
+    background: rgba(180, 83, 9, 0.08);
+  }
+
+  .wb-form-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .wb-advanced-settings {
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--surface-2);
+    padding: 12px 14px;
+  }
+
+  .wb-advanced-settings summary {
+    cursor: pointer;
+    list-style: none;
+    font-size: 0.74rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .wb-advanced-settings summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .wb-advanced-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 12px;
+  }
+
+  .wb-form-actions {
     margin-top: 2px;
   }
 
-  .btn-organize-magic {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    background: linear-gradient(145deg, #f59e0b 0%, #d97706 50%, #b45309 100%);
-    color: #fff;
-    padding: 10px 18px;
-    font-size: 0.8rem;
-    font-weight: 700;
-    border: none;
-    border-radius: 9px;
-    cursor: pointer;
-    transition: all 0.25s ease;
-    box-shadow: 0 3px 12px rgba(245, 158, 11, 0.4), inset 0 1px 0 rgba(255,255,255,0.2);
-    flex-shrink: 0;
-    font-family: inherit;
-    position: relative;
-    overflow: hidden;
-  }
-  .btn-organize-magic::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 50%;
-    background: linear-gradient(180deg, rgba(255,255,255,0.15), transparent);
-    pointer-events: none;
-    border-radius: 9px 9px 0 0;
-  }
-  .btn-organize-magic:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(245, 158, 11, 0.5), inset 0 1px 0 rgba(255,255,255,0.25);
-  }
-  .btn-organize-magic:active {
-    transform: translateY(0);
-  }
-  .btn-organize-magic:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.25);
-  }
-  .btn-magic-icon {
-    font-size: 1rem;
-    animation: magic-pulse 1.5s infinite;
-  }
-  @keyframes magic-pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.7; transform: scale(0.95); }
-  }
-  .btn-magic-text {
-    position: relative;
-    z-index: 1;
+  .wb-preview-layout {
+    display: grid;
+    grid-template-columns: minmax(320px, 0.42fr) minmax(0, 1fr);
+    gap: 16px;
+    align-items: stretch;
+    min-height: 0;
   }
 
-  .organize-status-bar {
-    font-size: 0.72rem;
-    color: #94a3b8;
-    margin-top: 10px;
-    padding: 8px 12px;
-    background: rgba(0,0,0,0.25);
-    border-radius: 8px;
-    min-height: 28px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    position: relative;
-    z-index: 1;
-    border: 1px solid rgba(51, 65, 85, 0.3);
+  .wb-preview-head {
+    align-items: flex-start;
   }
 
-  /* ===== 预览容器 ===== */
-  .organize-preview-container {
-    background: linear-gradient(180deg, rgba(15, 23, 42, 0.97), rgba(8, 12, 28, 0.99));
-    border: 1px solid rgba(251, 191, 36, 0.25);
-    border-radius: 12px;
-    margin-bottom: 14px;
-    overflow: hidden;
-    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.04);
-    animation: preview-slide-in 0.35s ease-out;
-  }
-  @keyframes preview-slide-in {
-    from { opacity: 0; transform: translateY(-12px); max-height: 0; }
-    to { opacity: 1; transform: translateY(0); max-height: 500px; }
+  .wb-preview-pane {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-width: 0;
+    min-height: 0;
+    border-radius: 0;
+    border: 0;
+    background: transparent;
+    padding: 0;
   }
 
-  .organize-preview-header {
-    background: linear-gradient(90deg, rgba(251, 191, 36, 0.15), rgba(139, 92, 246, 0.1));
-    padding: 12px 16px;
-    border-bottom: 1px solid rgba(251, 191, 36, 0.2);
+  .wb-preview-copy-group {
     display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-end;
   }
-  .preview-header-title {
-    font-size: 0.82rem;
-    font-weight: 700;
-    color: #fbbf24;
+
+  .wb-copy-btn {
+    width: auto !important;
+    padding: 7px 12px !important;
+    font-size: 0.74rem !important;
+    border-radius: 999px !important;
+    border: 1px solid var(--border) !important;
+    background: var(--surface-2) !important;
+    color: var(--text) !important;
+  }
+
+  .wb-copy-btn:hover {
+    background: var(--surface-3) !important;
+    border-color: var(--border-strong) !important;
+  }
+
+  .wb-status {
+    min-height: 20px;
+    font-size: 0.76rem;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+  .wb-editor .btn,
+  .wb-browser .btn {
+    width: auto;
+  }
+
+  .wb-preview-filter-bar {
     display: flex;
-    align-items: center;
+    flex-wrap: wrap;
     gap: 8px;
   }
-  .preview-header-badge {
-    font-size: 0.64rem;
-    background: rgba(16, 185, 129, 0.15);
-    color: #34d399;
-    padding: 3px 10px;
-    border-radius: 99px;
-    font-weight: 600;
-    border: 1px solid rgba(16, 185, 129, 0.25);
+
+  .wb-preview-list-pane .wb-preview-filter-bar {
+    margin-top: -2px;
   }
 
-  .organize-table-wrap {
-    max-height: 260px;
-    overflow-y: auto;
+  .wb-preview-meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
   }
 
-  .organize-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.72rem;
-  }
-  .organize-table th {
-    background: rgba(30, 41, 59, 0.9);
-    color: #94a3b8;
-    padding: 10px 12px;
-    text-align: left;
-    font-weight: 700;
-    font-size: 0.66rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    position: sticky;
-    top: 0;
-    z-index: 1;
-    border-bottom: 1px solid rgba(71, 85, 105, 0.4);
-  }
-  .organize-table td {
-    padding: 9px 12px;
-    border-bottom: 1px solid rgba(30, 41, 59, 0.6);
-    color: #e2e8f0;
-    transition: background 0.15s ease;
-  }
-  .organize-table tr:hover td {
-    background: rgba(251, 191, 36, 0.05);
-  }
-  .organize-table tr:last-child td {
-    border-bottom: none;
+  .wb-preview-detail-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-width: 0;
   }
 
-  .org-name-cell {
-    max-width: 110px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-weight: 600;
-    color: #f1f5f9;
+  .wb-preview-block {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
   }
 
-  .org-value-cell {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.7rem;
-  }
-  .org-changed {
-    color: #34d399 !important;
-    font-weight: 700;
-    background: rgba(16, 185, 129, 0.12);
-    padding: 2px 6px;
-    border-radius: 4px;
-    border: 1px solid rgba(16, 185, 129, 0.2);
-  }
-  .org-old {
-    color: #64748b;
-    text-decoration: line-through;
-    font-size: 0.62rem;
-    margin-right: 5px;
-  }
-
-  .org-reason-cell {
-    max-width: 150px;
-    font-size: 0.64rem;
-    color: #64748b;
-    line-height: 1.4;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .organize-footer {
-    padding: 12px 16px;
-    background: rgba(0, 0, 0, 0.25);
-    border-top: 1px solid rgba(51, 65, 85, 0.4);
+  .wb-preview-block-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
-  }
-  .organize-stats {
-    font-size: 0.7rem;
-    color: #64748b;
-  }
-  .organize-stats strong {
-    color: #34d399;
-    font-weight: 700;
-  }
-
-  .organize-actions {
-    display: flex;
     gap: 10px;
   }
-  .btn-org-apply {
-    background: linear-gradient(145deg, #10b981, #059669) !important;
-    color: #fff !important;
-    padding: 8px 18px !important;
-    font-size: 0.76rem !important;
-    font-weight: 700 !important;
-    border: none !important;
-    border-radius: 7px !important;
+
+  .wb-preview-title {
+    font-size: 1.02rem;
+    line-height: 1.65;
+    color: var(--text);
+    word-break: break-word;
+    white-space: pre-wrap;
+  }
+
+  .wb-preview-keys {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    line-height: 1.5;
+    min-height: 56px;
+  }
+
+  .wb-preview-key-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    font-size: 0.72rem;
+    font-weight: 600;
+  }
+
+  .wb-preview-content-block {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .wb-preview-content {
+    margin: 0;
+    padding: 18px;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    font-size: 0.94rem;
+    line-height: 1.85;
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow: auto;
+    user-select: text;
+    min-height: min(40vh, 420px);
+    max-height: min(74vh, 860px);
+  }
+
+  .wb-preview-empty {
+    border: 1px dashed var(--border);
+    border-radius: 16px;
+    background: var(--surface-2);
+    color: var(--muted);
+    font-size: 0.78rem;
+    line-height: 1.6;
+    padding: 16px;
+    min-height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .wb-preview-view {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 0;
+    flex: 1;
+    overflow: auto;
+    max-height: min(74vh, 860px);
+    padding-right: 2px;
+    outline: none;
+  }
+
+  .wb-preview-row {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
     cursor: pointer;
-    transition: all 0.2s ease;
-    font-family: inherit;
-    box-shadow: 0 2px 10px rgba(16, 185, 129, 0.35);
+    text-align: left;
+    width: 100%;
   }
-  .btn-org-apply:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.45);
+
+  .wb-preview-row:hover {
+    border-color: var(--border-strong);
+    background: var(--surface-3);
   }
-  .btn-org-cancel {
-    background: rgba(51, 65, 85, 0.5) !important;
-    color: #94a3b8 !important;
-    padding: 8px 16px !important;
-    font-size: 0.76rem !important;
-    font-weight: 600 !important;
-    border: 1px solid rgba(71, 85, 105, 0.5) !important;
-    border-radius: 7px !important;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    font-family: inherit;
+
+  .wb-preview-row.is-selected {
+    border-color: var(--border-strong);
+    background: var(--surface-3);
+    box-shadow: inset 0 0 0 1px rgba(67, 97, 238, 0.18);
   }
-  .btn-org-cancel:hover {
-    background: rgba(71, 85, 105, 0.6) !important;
-    color: #e2e8f0 !important;
+
+  .wb-preview-row-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .wb-preview-row-title {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.35;
+  }
+
+  .wb-preview-row-meta {
+    margin-top: 4px;
+    font-size: 0.7rem;
+    color: var(--muted);
+  }
+
+  .wb-preview-row-preview {
+    margin: 0;
+    font-size: 0.78rem;
+    color: var(--muted);
+    line-height: 1.65;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 8.5rem;
+    overflow: auto;
+  }
+
+  .wb-preview-notice {
+    margin: 6px 0 0;
+    font-size: 0.7rem;
+    color: var(--muted);
+    line-height: 1.45;
+  }
+
+  .wb-preview-row-keys {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .wb-entry-actions .btn {
+    width: auto;
+    padding: 6px 10px;
+    font-size: 0.74rem;
+  }
+
+  @media (max-width: 1100px) {
+    .wb-head {
+      grid-template-columns: 1fr;
+    }
+
+    .wb-head-top {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+
+    .wb-shell {
+      grid-template-columns: 1fr;
+    }
+
+    .wb-preview-layout {
+      grid-template-columns: 1fr;
+    }
   }
 </style>

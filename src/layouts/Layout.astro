@@ -12,13 +12,45 @@ const { title } = Astro.props;
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{title}</title>
-    <script is:inline src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
     <!-- 可选：JetBrains Mono 字体 -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
+    <script is:inline>
+      (function () {
+        var STORAGE_KEY = 'st_v3_theme';
+        var root = document.documentElement;
+
+        function systemTheme() {
+          try {
+            return window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+          } catch (err) {
+            return 'dark';
+          }
+        }
+
+        var saved = null;
+        try {
+          saved = localStorage.getItem(STORAGE_KEY);
+        } catch (err) {}
+
+        var theme = saved === 'light' || saved === 'dark' ? saved : systemTheme();
+        root.setAttribute('data-theme', theme);
+        root.style.colorScheme = theme;
+      })();
+    </script>
 
     <style is:global>
+      html {
+        scroll-behavior: auto;
+      }
+
+      *, *::before, *::after {
+        animation: none !important;
+        transition-property: none !important;
+        scroll-behavior: auto !important;
+      }
+
       /* ========== 基础重置 ========== */
       *, *::before, *::after {
         box-sizing: border-box;
@@ -158,70 +190,112 @@ const { title } = Astro.props;
         letter-spacing: 0.05em;
       }
 
-      /* ========== 主容器布局 — 7 面板双行网格 ========== */
+      /* ========== 工作区布局 ========== */
       .app-container {
-        display: grid;
-        grid-template-columns: 300px minmax(0, 1fr) minmax(0, 1fr) minmax(360px, 1.2fr);
-        grid-template-rows: auto auto;
-        grid-template-areas:
-          "ai character worldbook preview"
-          "statusbar chat auditor preview";
-        gap: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
         max-width: 1920px;
         margin: 0 auto;
+      }
+      .workspace-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        max-width: 1920px;
+        margin: 0 auto 18px;
+        padding: 10px 12px;
+        background: rgba(13, 18, 32, 0.86);
+        border: 1px solid rgba(99, 102, 241, 0.16);
+        border-radius: 14px;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        position: sticky;
+        top: 16px;
+        z-index: 30;
+      }
+      .workspace-tab {
+        appearance: none;
+        border: 1px solid rgba(100, 116, 139, 0.22);
+        background: rgba(15, 23, 37, 0.85);
+        color: #94a3b8;
+        border-radius: 999px;
+        padding: 8px 14px;
+        font-family: inherit;
+        font-size: 0.8rem;
+        font-weight: 600;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .workspace-tab[aria-selected="true"] {
+        background: rgba(99, 102, 241, 0.16);
+        color: #e0e7ff;
+        border-color: rgba(99, 102, 241, 0.35);
+      }
+      .workspace-tab:focus-visible {
+        outline: 2px solid rgba(56, 189, 248, 0.5);
+        outline-offset: 2px;
+      }
+      .workspace-section {
+        display: block;
+      }
+      .workspace-section[hidden] {
+        display: none !important;
+      }
+      .workspace-section-header {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 14px;
+        padding: 0 2px;
+      }
+      .workspace-section-title {
+        margin: 0;
+        font-size: 0.98rem;
+        font-weight: 700;
+        color: #e2e8f0;
+      }
+      .workspace-section-desc {
+        margin: 0;
+        font-size: 0.72rem;
+        color: #64748b;
+        line-height: 1.4;
+      }
+      .workspace-grid {
+        display: grid;
+        gap: 16px;
         align-items: start;
       }
-
-      /* 区域分配 — 全部 7 面板 */
-      .area-ai { grid-area: ai; }
-      .area-character { grid-area: character; }
-      .area-worldbook { grid-area: worldbook; }
-      .area-preview { grid-area: preview; }
-      .area-chat { grid-area: chat; }
-      .area-statusbar { grid-area: statusbar; }
-      .area-auditor { grid-area: auditor; }
-
-      /* ========== 响应式 — 4 档自适应 ========== */
-      @media (max-width: 1600px) {
-        .app-container {
-          grid-template-columns: 280px 1fr minmax(340px, 1fr);
-          grid-template-areas:
-            "ai character preview"
-            "worldbook chat preview"
-            "statusbar auditor preview";
-        }
+      .workspace-grid-core {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      .workspace-grid-worldbook {
+        grid-template-columns: minmax(0, 1.2fr) minmax(340px, 0.8fr);
+      }
+      .workspace-grid-preview {
+        grid-template-columns: minmax(0, 1.15fr) minmax(360px, 0.85fr);
+      }
+      .workspace-grid-tools {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      .workspace-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
       }
 
-      @media (max-width: 1200px) {
-        .app-container {
-          grid-template-columns: 1fr 1fr;
-          grid-template-areas:
-            "ai character"
-            "worldbook chat"
-            "statusbar auditor"
-            "preview preview";
-        }
-        .code-window {
-          position: static !important;
-          max-height: 600px !important;
+      @media (max-width: 1280px) {
+        .workspace-grid-core,
+        .workspace-grid-worldbook,
+        .workspace-grid-preview {
+          grid-template-columns: 1fr;
         }
       }
 
       @media (max-width: 900px) {
-        .app-container {
-          grid-template-columns: 1fr;
-          grid-template-areas:
-            "ai"
-            "character"
-            "worldbook"
-            "chat"
-            "statusbar"
-            "auditor"
-            "preview";
-        }
-        .panel, .code-window {
-          max-height: none !important;
-          position: static !important;
+        body {
+          padding: 14px;
         }
         .app-header {
           flex-direction: column;
@@ -230,8 +304,22 @@ const { title } = Astro.props;
           padding: 12px 16px;
         }
         .app-brand {
-          flex-direction: column;
+          flex-direction: row;
+          align-items: center;
           gap: 8px;
+        }
+        .workspace-nav {
+          position: static;
+        }
+        .workspace-tab {
+          flex: 1 1 calc(50% - 4px);
+          justify-content: center;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .workspace-tab {
+          flex-basis: 100%;
         }
       }
 
@@ -561,14 +649,6 @@ const { title } = Astro.props;
       .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
       .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
 
-      /* ========== 面板主题变体 ========== */
-      .ai-panel {
-        border-color: rgba(139, 92, 246, 0.25);
-        background: linear-gradient(180deg, rgba(13, 18, 32, 0.95), rgba(15, 23, 37, 0.92));
-      }
-      .ai-panel:hover { border-color: rgba(139, 92, 246, 0.4); }
-      .ai-panel h2 { border-color: rgba(139, 92, 246, 0.25); color: #d8b4fe; }
-
       .sb-panel {
         border-color: rgba(245, 158, 11, 0.25);
         background: linear-gradient(180deg, rgba(13, 18, 32, 0.95), rgba(15, 23, 37, 0.92));
@@ -583,15 +663,6 @@ const { title } = Astro.props;
         min-height: 20px;
         margin-top: 10px;
         font-weight: 600;
-      }
-
-      /* ========== 预设上传区 ========== */
-      .preset-upload {
-        border: 1px dashed rgba(99, 102, 241, 0.4);
-        padding: 14px;
-        border-radius: 10px;
-        background: rgba(99, 102, 241, 0.05);
-        margin-bottom: 16px;
       }
 
       /* ========== 草稿管理器 ========== */
@@ -1034,7 +1105,7 @@ const { title } = Astro.props;
         color: #fca5a5;
         font-size: 0.75rem;
       }
-            /* ========== AI 智能整理美化 ========== */
+      /* ========== 世界书整理美化（已停用） ========== */
       .wb-organize-wrap {
         background: linear-gradient(135deg, rgba(251, 191, 36, 0.1) 0%, rgba(139, 92, 246, 0.06) 50%, rgba(6, 182, 212, 0.04) 100%);
         border: 1px solid rgba(251, 191, 36, 0.35);
@@ -1348,107 +1419,358 @@ const { title } = Astro.props;
         color: #e2e8f0 !important;
       }
 
-      /* ========== GSAP 动画专用 ========== */
-
-      /* 面板 Hover 追光 */
-      .panel-hover-glow {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        pointer-events: none;
-        opacity: 0;
-        z-index: 0;
-        border-radius: inherit;
-        background: radial-gradient(
-          320px circle at var(--glow-x, 50%) var(--glow-y, 50%),
-          rgba(139, 92, 246, 0.08) 0%,
-          rgba(56, 189, 248, 0.04) 30%,
-          transparent 70%
-        );
-        transition: opacity 0.3s;
+      /* ========== 轻量主题系统 ========== */
+      :root {
+        --page-bg: #eef1f4;
+        --page-bg-2: #f7f8fa;
+        --surface: rgba(255, 255, 255, 0.84);
+        --surface-strong: rgba(255, 255, 255, 0.96);
+        --surface-2: rgba(242, 245, 248, 0.98);
+        --surface-3: rgba(233, 238, 243, 0.98);
+        --text: #101828;
+        --muted: #667085;
+        --muted-2: #94a3b8;
+        --border: rgba(148, 163, 184, 0.24);
+        --border-strong: rgba(67, 97, 238, 0.28);
+        --accent: #4361ee;
+        --accent-2: #0f766e;
+        --accent-soft: rgba(67, 97, 238, 0.14);
+        --success: #15803d;
+        --warning: #b45309;
+        --danger: #b91c1c;
       }
 
-      /* 确保面板子元素浮在追光上方 */
-      .panel > *:not(.panel-hover-glow),
-      .code-window > *:not(.panel-hover-glow) {
-        position: relative;
-        z-index: 1;
+      html[data-theme='dark'] {
+        --page-bg: #0f1115;
+        --page-bg-2: #161a22;
+        --surface: rgba(17, 21, 28, 0.88);
+        --surface-strong: rgba(20, 24, 32, 0.96);
+        --surface-2: rgba(24, 29, 37, 0.96);
+        --surface-3: rgba(30, 36, 47, 0.98);
+        --text: #e5e7eb;
+        --muted: #9ca3af;
+        --muted-2: #6b7280;
+        --border: rgba(148, 163, 184, 0.16);
+        --border-strong: rgba(91, 124, 250, 0.26);
+        --accent: #5b7cfa;
+        --accent-2: #1f9d8a;
+        --accent-soft: rgba(91, 124, 250, 0.18);
+        --success: #34d399;
+        --warning: #f59e0b;
+        --danger: #f87171;
+        color-scheme: dark;
       }
 
-      /* Header 扫光 */
-      .header-shine-sweep {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 50%;
-        height: 100%;
-        background: linear-gradient(
-          90deg,
-          transparent,
-          rgba(255, 255, 255, 0.06),
-          transparent
-        );
-        pointer-events: none;
-        z-index: 2;
+      html[data-theme='light'] {
+        color-scheme: light;
       }
 
-      /* 环境浮光球 */
-      .ambient-orb {
-        position: fixed;
-        border-radius: 50%;
-        pointer-events: none;
-        z-index: 0;
-        opacity: 0.5;
-        filter: blur(80px);
-        will-change: transform, opacity;
+      body {
+        background:
+          radial-gradient(circle at top left, rgba(67, 97, 238, 0.06), transparent 28%),
+          radial-gradient(circle at top right, rgba(15, 118, 110, 0.05), transparent 26%),
+          linear-gradient(180deg, var(--page-bg-2), var(--page-bg));
+        color: var(--text);
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       }
 
-      /* 面板 transform 不影响 overflow */
-      .panel, .code-window {
-        transform-origin: center center;
-        position: relative;
-        z-index: 1;
+      .app-header,
+      .workspace-nav,
+      .panel,
+      .code-window,
+      .draft-manager,
+      .preset-upload,
+      .chat-settings-bar,
+      .chat-controls,
+      .chat-messages,
+      .chat-input-area,
+      .wb-organize-wrap,
+      .organize-preview-container,
+      .audit-score-card,
+      .audit-section,
+      .dim-card,
+      .issue-item,
+      .suggestion-card,
+      .preset-item,
+      .entry-item,
+      .theme-toggle,
+      .btn,
+      .btn-alt-add,
+      .btn-alt-action,
+      .btn-chat-ctrl,
+      .btn-chat-start,
+      .btn-chat-send,
+      .app-version-badge,
+      .chat-indicator,
+      .btn-organize-magic {
+        box-shadow: none !important;
       }
 
-      /* 下拉展开时抬升所属面板，避免被后续面板覆盖 */
-      .panel.panel-elevated,
-      .code-window.panel-elevated {
-        z-index: 2000;
+      .app-header,
+      .workspace-nav,
+      .panel,
+      .code-window,
+      .draft-manager,
+      .preset-upload,
+      .chat-settings-bar,
+      .chat-controls,
+      .chat-messages,
+      .chat-input-area,
+      .wb-organize-wrap,
+      .organize-preview-container,
+      .audit-score-card,
+      .audit-section,
+      .dim-card,
+      .issue-item,
+      .suggestion-card,
+      .preset-item,
+      .entry-item {
+        background: var(--surface-strong) !important;
+        border-color: var(--border) !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
       }
 
-      /* Portal 模式：下拉框传送到 body 时使用 fixed 定位 */
-      .cs-dropdown.cs-portalled {
-        position: fixed !important;
-        z-index: 99999 !important;
-        max-height: 220px !important;
-        overflow: hidden auto !important;
-        opacity: 1 !important;
-        border: 1px solid rgba(99, 102, 241, 0.3) !important;
-        border-top: none !important;
-        border-radius: 0 0 8px 8px !important;
-        background: rgb(15, 20, 36) !important;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
-        transform-origin: top center;
-        animation: csDropIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+      .app-header {
+        border-radius: 18px;
+        padding: 14px 18px;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
       }
-      @keyframes csDropIn {
-        from {
-          opacity: 0;
-          transform: scaleY(0.4) translateY(-4px);
-          max-height: 0;
-        }
-        to {
-          opacity: 1;
-          transform: scaleY(1) translateY(0);
-          max-height: 220px;
-        }
+
+      .app-header::before {
+        display: none !important;
       }
+
+      .app-title,
+      .workspace-section-title,
+      .panel h2,
+      .panel h3,
+      .theme-toggle {
+        color: var(--text) !important;
+        background: none !important;
+        -webkit-text-fill-color: currentColor !important;
+      }
+
+      .app-subtitle,
+      .workspace-section-desc,
+      .panel p,
+      .audit-status,
+      .organize-stats,
+      .score-summary,
+      .chat-empty-hint,
+      .alt-greetings-tip,
+      .auditor-desc,
+      .wb-hint,
+      .wb-entry-meta,
+      .wb-entry-preview,
+      .wb-entry-keys,
+      .wb-editor-desc,
+      .wb-mini-hint,
+      .wb-status,
+      .preset-status,
+      .organize-subtitle,
+      .organize-stats,
+      .score-summary,
+      .chat-setting-helper,
+      .chat-setting-hint,
+      .audit-section .score-summary {
+        color: var(--muted) !important;
+      }
+
+      .app-header-actions {
+        gap: 8px;
+      }
+
+      .workspace-nav {
+        gap: 6px;
+        padding: 8px;
+        border-radius: 999px;
+        position: sticky;
+        top: 14px;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+      }
+
+      .workspace-tab,
+      .theme-toggle,
+      .btn,
+      .btn-alt-add,
+      .btn-alt-action,
+      .btn-chat-ctrl,
+      .btn-chat-start,
+      .btn-chat-send,
+      .app-version-badge,
+      .chat-indicator {
+        border-radius: 999px !important;
+        border: 1px solid var(--border) !important;
+        background: var(--surface-2) !important;
+        color: var(--text) !important;
+      }
+
+      .workspace-tab[aria-selected='true'],
+      .wb-filter-pill.is-active,
+      .btn-add,
+      .btn-ai,
+      .btn-fetch,
+      .btn-organize-magic,
+      .btn-chat-start,
+      .btn-chat-send,
+      .btn-audit-run,
+      .btn-org-apply {
+        background: var(--accent) !important;
+        color: #fff !important;
+        border-color: transparent !important;
+      }
+
+      .theme-toggle {
+        padding: 8px 12px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .theme-toggle:hover {
+        border-color: var(--border-strong) !important;
+        background: var(--surface-3) !important;
+      }
+
+      .panel {
+        border-radius: 18px;
+        padding: 18px;
+        max-height: calc(100vh - 40px);
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+      }
+
+      .panel h2 {
+        border-bottom-color: var(--border) !important;
+      }
+
+      input[type='text'],
+      input[type='password'],
+      input[type='number'],
+      textarea,
+      select {
+        background: var(--surface-2) !important;
+        border: 1px solid var(--border) !important;
+        color: var(--text) !important;
+        border-radius: 12px;
+        box-shadow: none !important;
+      }
+      input[type='text']:focus,
+      input[type='password']:focus,
+      input[type='number']:focus,
+      textarea:focus,
+      select:focus {
+        outline: 2px solid var(--accent-soft);
+        outline-offset: 1px;
+        border-color: var(--border-strong) !important;
+        box-shadow: none !important;
+      }
+
+      .cs-trigger,
+      .cs-dropdown {
+        background: var(--surface-2) !important;
+        color: var(--text) !important;
+        border-color: var(--border) !important;
+        box-shadow: none !important;
+      }
+
+      .cs-option {
+        color: var(--text) !important;
+      }
+      .cs-option:hover,
+      .cs-option.cs-selected {
+        background: var(--accent-soft) !important;
+        color: var(--text) !important;
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: linear-gradient(180deg, var(--accent), var(--accent-2)) !important;
+        box-shadow: none !important;
+      }
+
+      .btn:hover,
+      .workspace-tab:hover,
+      .btn-chat-ctrl:hover,
+      .btn-alt-action:hover,
+      .btn-alt-add:hover,
+      .theme-toggle:hover,
+      .wb-filter-pill:hover {
+        border-color: var(--border-strong) !important;
+        background: var(--surface-3) !important;
+        color: var(--text) !important;
+      }
+
+      .workspace-section-title,
+      .panel h2,
+      .panel h3,
+      .app-title {
+        letter-spacing: 0.01em;
+      }
+
+      .btn,
+      .workspace-tab,
+      .theme-toggle,
+      .chat-indicator,
+      .app-version-badge {
+        padding-left: 14px;
+        padding-right: 14px;
+      }
+
+      .code-window,
+      .chat-messages {
+        overflow: hidden;
+      }
+
     </style>
   </head>
   <body>
     <slot />
+
+    <script is:inline>
+      (function () {
+        var STORAGE_KEY = 'st_v3_theme';
+        var root = document.documentElement;
+        var toggle = null;
+
+        function getNextLabel(theme) {
+          return theme === 'dark' ? '☀ 浅色' : '🌙 深色';
+        }
+
+        function applyTheme(theme, persist) {
+          root.setAttribute('data-theme', theme);
+          root.style.colorScheme = theme;
+          if (toggle) {
+            toggle.setAttribute('aria-pressed', theme === 'dark' ? 'true' : 'false');
+            toggle.textContent = getNextLabel(theme);
+          }
+          if (persist) {
+            try {
+              localStorage.setItem(STORAGE_KEY, theme);
+            } catch (err) {}
+          }
+        }
+
+        function getInitialTheme() {
+          try {
+            var saved = localStorage.getItem(STORAGE_KEY);
+            if (saved === 'light' || saved === 'dark') return saved;
+          } catch (err) {}
+          return root.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+        }
+
+        toggle = document.getElementById('themeToggle');
+        if (toggle) {
+          toggle.addEventListener('click', function () {
+            applyTheme(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark', true);
+          });
+        }
+
+        applyTheme(getInitialTheme(), false);
+      })();
+    </script>
 
     <!-- ★ 全局自定义下拉框增强 -->
     <script is:inline>
@@ -1496,6 +1818,7 @@ const { title } = Astro.props;
 
       function enhanceSelect(sel) {
         if (sel.classList.contains('cs-hidden')) return;
+        if (sel.hasAttribute('data-native-select')) return;
         // 跳过 display:none 的 select（如 chatMaxTokens）
         if (sel.offsetParent === null && sel.style.display === 'none') return;
 
@@ -1638,7 +1961,7 @@ const { title } = Astro.props;
 
       // 初始增强
       function init() {
-        document.querySelectorAll('select:not(.cs-hidden)').forEach(enhanceSelect);
+        document.querySelectorAll('select:not(.cs-hidden):not([data-native-select])').forEach(enhanceSelect);
       }
 
       // DOM ready 后执行
