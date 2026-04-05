@@ -57,6 +57,51 @@ export function buildExportWorldbookEntries(
   });
 }
 
+/**
+ * 将单条世界书条目压缩为「香草导入」真正会用到的最小字段集。
+ * 用于“复制JSON”这类单条导入场景，避免把内部冗余字段也一起带出去。
+ */
+export interface VanillaWorldbookEntryCopy {
+  keys: string[];
+  secondary_keys: string[];
+  comment: string;
+  content: string;
+  enabled: boolean;
+  insertion_order: number;
+  case_sensitive: boolean;
+  priority: number;
+  selective: boolean;
+  constant: boolean;
+  position: number;
+}
+
+export function buildVanillaWorldbookEntryCopy(
+  worldbookEntry: WorldbookEntry | null | undefined
+): VanillaWorldbookEntryCopy {
+  const e = worldbookEntry || ({} as WorldbookEntry);
+  const keys = Array.isArray(e.keys) ? e.keys.slice() : [];
+  const secondaryKeys = Array.isArray(e.secondaryKeys) ? e.secondaryKeys.slice() : [];
+  const comment = String(e.comment || '');
+  const content = String(e.content || '');
+  const isConstant = e.strategy === 'constant';
+  const isSelective = isConstant ? false : (keys.length > 0 || e.strategy === 'selective' || e.strategy === 'vectorized' || !!e.vectorized);
+  const enabled = e.disable !== true && e.enabled !== false;
+
+  return {
+    keys: keys,
+    secondary_keys: secondaryKeys,
+    comment: comment,
+    content: content,
+    enabled: enabled,
+    insertion_order: safeInt(e.order, 100),
+    case_sensitive: e.caseSensitive !== undefined ? !!e.caseSensitive : false,
+    priority: safeInt(e.prob, 100),
+    selective: isSelective,
+    constant: isConstant,
+    position: safeInt(e.position, 4),
+  };
+}
+
 /** 合并 importedCardMeta 和 importedWorldbookMeta 为一个扁平 meta 对象 */
 function mergeMeta(
   importedCardMeta: ImportedCardMeta | null,

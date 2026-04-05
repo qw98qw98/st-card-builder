@@ -68,7 +68,7 @@ import PromptLayoutPanel from '../components/PromptLayoutPanel.astro';
     import { extractWorldbookImportJSON, parseWorldbookImportJSON, getWorldbookImportName, getImportedWorldbookMeta, getImportedWorldbookEntries } from '../scripts/worldbook/import';
     import { getCardRootPayload, isCharacterCardPayload, isPureWorldbookPayload, normalizeImportedCharacterCard } from '../scripts/card-normalize';
     import { getWorldbookSourceLabel, getWorldbookSourceClass, cleanWorldbookTitle, normalizeWorldbookTextBlock, makePreviewCopyText, buildWorldbookMarkdown, downloadWorldbookMarkdown } from '../scripts/worldbook-helpers';
-    import { buildExportWorldbookEntries, buildExportCharacterBook, generateSillyTavernJSON, generateVanillaCharacterJSON } from '../scripts/json-generate';
+    import { buildVanillaWorldbookEntryCopy, generateSillyTavernJSON, generateVanillaCharacterJSON } from '../scripts/json-generate';
     import type { ExportContext } from '../scripts/json-generate';
     import { createTextChunk, extractPNGCharaChunk } from '../scripts/utils/png-chunk';
     import {
@@ -159,6 +159,7 @@ import PromptLayoutPanel from '../components/PromptLayoutPanel.astro';
     var wbPreviewTitle       = document.getElementById('wbPreviewTitle');
     var wbPreviewKeys        = document.getElementById('wbPreviewKeys');
     var wbPreviewContent     = document.getElementById('wbPreviewContent');
+    var btnCopyPreviewJson   = document.getElementById('btnCopyPreviewJson');
 
     // ============================================================
     //  状态
@@ -418,6 +419,7 @@ import PromptLayoutPanel from '../components/PromptLayoutPanel.astro';
         btnCopyPreviewTitle,
         btnCopyPreviewKeys,
         btnCopyPreviewContent,
+        btnCopyPreviewJson,
         btnCopyPreviewAll
       ].forEach(function(btn) {
         if (btn) btn.disabled = !enabled;
@@ -566,6 +568,10 @@ import PromptLayoutPanel from '../components/PromptLayoutPanel.astro';
         if (idx < 0 || idx >= worldbookEntries.length) return;
         copyWorldbookText(textFactory(worldbookEntries[idx]), label);
       });
+    }
+
+    function buildPreviewWorldbookEntryJson(entry) {
+      return buildVanillaWorldbookEntryCopy(entry || {});
     }
 
     function setPreviewDetail(entry, index, visibleCount, posMap) {
@@ -732,6 +738,9 @@ import PromptLayoutPanel from '../components/PromptLayoutPanel.astro';
     });
     bindPreviewCopyButton(btnCopyPreviewContent, '设定内容已复制', function(entry) {
       return entry.content || '（空内容）';
+    });
+    bindPreviewCopyButton(btnCopyPreviewJson, 'JSON 已复制', function(entry) {
+      return JSON.stringify(buildPreviewWorldbookEntryJson(entry), null, 2);
     });
     bindPreviewCopyButton(btnCopyPreviewAll, '整条已复制', function(entry) {
       return makePreviewCopyText(entry);
