@@ -1,0 +1,829 @@
+---
+---
+
+<div class="pl-shell">
+  <div class="pl-info">
+    <p class="pl-info-text">按角色卡 Prompt 在上下文中的真实排布顺序从上（最弱）到下（最强）展示。世界书区域可点击收起。</p>
+  </div>
+  <div id="promptLayoutView" class="pl-timeline"></div>
+</div>
+
+<style is:global>
+  .pl-shell {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .pl-info {
+    padding: 10px 14px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+  }
+
+  .pl-info-text {
+    margin: 0;
+    font-size: 0.76rem;
+    color: var(--muted);
+    line-height: 1.55;
+  }
+
+  /* ========== Format Banner ========== */
+  .pl-format-banner {
+    padding: 8px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.76rem;
+    color: var(--muted);
+  }
+
+  .pl-format-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 0.66rem;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+  }
+
+  .pl-format-badge.is-st {
+    color: var(--accent);
+    border: 1px solid rgba(91, 124, 250, 0.3);
+    background: rgba(91, 124, 250, 0.1);
+  }
+
+  .pl-format-badge.is-vanilla {
+    color: var(--success);
+    border: 1px solid rgba(21, 128, 61, 0.3);
+    background: rgba(21, 128, 61, 0.08);
+  }
+
+  /* ========== Timeline ========== */
+  .pl-timeline {
+    position: relative;
+    padding-left: 28px;
+  }
+
+  .pl-timeline::before {
+    content: '';
+    position: absolute;
+    left: 9px;
+    top: 8px;
+    bottom: 8px;
+    width: 2px;
+    background: linear-gradient(
+      to bottom,
+      var(--border) 0%,
+      var(--accent) 50%,
+      rgba(91, 124, 250, 0.6) 70%,
+      var(--accent) 100%
+    );
+    border-radius: 2px;
+  }
+
+  /* ========== Layer (each row) ========== */
+  .pl-layer {
+    position: relative;
+    margin-bottom: 6px;
+  }
+
+  .pl-layer::before {
+    content: '';
+    position: absolute;
+    left: -28px;
+    top: 10px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: var(--surface);
+    z-index: 1;
+  }
+
+  .pl-layer[data-strength="weak"]::before { border-color: var(--muted-2); }
+  .pl-layer[data-strength="medium"]::before { border-color: var(--accent-2); }
+  .pl-layer[data-strength="strong"]::before { border-color: var(--accent); background: rgba(91, 124, 250, 0.2); }
+  .pl-layer[data-strength="divider"]::before { border-color: transparent; background: transparent; }
+
+  /* ========== Layer Header (non-worldbook fields) ========== */
+  .pl-layer-header {
+    padding: 10px 14px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+  }
+
+  .pl-layer-header[data-empty="true"] {
+    opacity: 0.5;
+    border-style: dashed;
+  }
+
+  /* ★ Vanilla-only: grey out creator notes */
+  .pl-layer-header.is-info-only {
+    opacity: 0.55;
+    border-style: dashed;
+    background: transparent;
+  }
+
+  .pl-layer-header.is-info-only .pl-layer-label {
+    color: var(--muted-2);
+  }
+
+  .pl-layer-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 4px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .pl-layer-label-icon {
+    font-size: 0.9rem;
+  }
+
+  .pl-layer-prompt-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.64rem;
+    font-weight: 700;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .pl-layer-prompt-tag.is-permanent {
+    color: var(--success);
+    border-color: rgba(21, 128, 61, 0.3);
+    background: rgba(21, 128, 61, 0.06);
+  }
+
+  .pl-layer-prompt-tag.is-temporary {
+    color: var(--warning);
+    border-color: rgba(180, 83, 9, 0.3);
+    background: rgba(180, 83, 9, 0.06);
+  }
+
+  .pl-layer-prompt-tag.is-info {
+    color: var(--muted-2);
+    border-color: var(--border);
+    background: var(--surface);
+  }
+
+  /* ★ Full content display — no height limit */
+  .pl-layer-content {
+    margin: 0;
+    font-size: 0.76rem;
+    color: var(--muted);
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .pl-layer-empty {
+    margin: 0;
+    font-size: 0.76rem;
+    color: var(--muted-2);
+    font-style: italic;
+  }
+
+  .pl-layer-charcount {
+    font-size: 0.66rem;
+    color: var(--muted-2);
+    margin-top: 4px;
+  }
+
+  /* ========== Chat History Divider ========== */
+  .pl-divider {
+    position: relative;
+    margin-bottom: 6px;
+  }
+
+  .pl-divider::before {
+    content: '';
+    position: absolute;
+    left: -28px;
+    top: 50%;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px dashed var(--muted-2);
+    background: transparent;
+    transform: translateY(-50%);
+  }
+
+  .pl-divider-inner {
+    padding: 10px 14px;
+    border-radius: 12px;
+    border: 1px dashed var(--border);
+    background: transparent;
+    text-align: center;
+    font-size: 0.76rem;
+    color: var(--muted-2);
+    font-style: italic;
+  }
+
+  /* ========== Worldbook Group ========== */
+  .pl-wb-group {
+    position: relative;
+    margin-bottom: 6px;
+  }
+
+  .pl-wb-group::before {
+    content: '';
+    position: absolute;
+    left: -28px;
+    top: 10px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid var(--accent);
+    background: rgba(91, 124, 250, 0.15);
+    z-index: 1;
+  }
+
+  .pl-wb-group-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    border: 1px solid var(--border-strong);
+    background: var(--surface-3);
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s;
+  }
+
+  .pl-wb-group-header:hover {
+    background: var(--surface-strong);
+  }
+
+  .pl-wb-group-toggle {
+    font-size: 0.72rem;
+    color: var(--muted);
+    transition: transform 0.15s;
+    flex-shrink: 0;
+  }
+
+  .pl-wb-group.is-collapsed .pl-wb-group-toggle {
+    transform: rotate(-90deg);
+  }
+
+  .pl-wb-group-title {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0;
+    flex: 1;
+  }
+
+  .pl-wb-group-count {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 0.66rem;
+    font-weight: 700;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .pl-wb-group-body {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-top: 6px;
+  }
+
+  .pl-wb-group.is-collapsed .pl-wb-group-body {
+    display: none;
+  }
+
+  /* ========== Worldbook Entry Card ========== */
+  .pl-wb-entry {
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+  }
+
+  .pl-wb-entry-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .pl-wb-entry-title {
+    margin: 0;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.35;
+    flex: 1;
+  }
+
+  .pl-wb-entry-order {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 40px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    background: rgba(91, 124, 250, 0.12);
+    color: var(--accent);
+    border: 1px solid rgba(91, 124, 250, 0.2);
+    flex-shrink: 0;
+  }
+
+  .pl-wb-entry-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 6px;
+  }
+
+  .pl-wb-entry-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.64rem;
+    font-weight: 700;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .pl-wb-entry-tag.tag-constant {
+    color: var(--accent);
+    border-color: rgba(91, 124, 250, 0.3);
+    background: rgba(91, 124, 250, 0.08);
+  }
+
+  .pl-wb-entry-tag.tag-selective {
+    color: var(--accent-2);
+    border-color: rgba(15, 118, 110, 0.3);
+    background: rgba(15, 118, 110, 0.08);
+  }
+
+  .pl-wb-entry-tag.tag-source-ai {
+    color: var(--accent);
+  }
+
+  .pl-wb-entry-tag.tag-source-manual {
+    color: var(--accent-2);
+  }
+
+  .pl-wb-entry-tag.tag-source-import {
+    color: var(--muted-2);
+  }
+
+  .pl-wb-entry-tag.tag-prob {
+    color: var(--muted);
+  }
+
+  .pl-wb-entry-keys {
+    margin-top: 5px;
+    font-size: 0.7rem;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+
+  .pl-wb-entry-keys strong {
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  /* ★ Full content — no clamp, show all */
+  .pl-wb-entry-preview {
+    margin-top: 5px;
+    font-size: 0.74rem;
+    color: var(--muted);
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  /* ========== Strength Gradient Indicator ========== */
+  .pl-strength-bar {
+    margin-top: 8px;
+    padding: 8px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+  }
+
+  .pl-strength-label {
+    font-size: 0.68rem;
+    color: var(--muted-2);
+    margin: 0 0 4px;
+  }
+
+  .pl-strength-track {
+    height: 6px;
+    border-radius: 3px;
+    background: linear-gradient(
+      to right,
+      var(--muted-2) 0%,
+      var(--accent-2) 40%,
+      var(--accent) 80%,
+      var(--accent) 100%
+    );
+  }
+
+  .pl-strength-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 3px;
+    font-size: 0.62rem;
+    color: var(--muted-2);
+  }
+</style>
+
+<script>
+  import { importedCardMeta as importedCardMetaStore } from '../stores/card-store';
+
+  const posLabelsST: Record<number, string> = {
+    0: '角色定义之前',
+    1: '角色定义之后',
+    2: '前 EM',
+    3: '后 EM',
+    4: '@D 深度插入',
+    5: '前作者注释',
+    6: '后作者注释',
+  };
+
+  const posLabelsVanilla: Record<number, string> = {
+    0: '角色定义之前',
+    1: '角色定义之后',
+    4: '@D 深度插入',
+  };
+
+  const posStrength: Record<number, string> = {
+    0: 'weak',
+    1: 'weak',
+    2: 'medium',
+    3: 'medium',
+    4: 'medium',
+    5: 'strong',
+    6: 'strong',
+  };
+
+  /** Positions hidden in Vanilla mode */
+  const vanillaHiddenPositions = new Set([2, 3, 5, 6]);
+
+  function escapeHTML(s: string): string {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  function charCount(s: string): number {
+    return (s || '').length;
+  }
+
+  function getSourceClass(source: string): string {
+    if (source === 'ai') return 'tag-source-ai';
+    if (source === 'import') return 'tag-source-import';
+    return 'tag-source-manual';
+  }
+
+  function getSourceLabel(source: string): string {
+    if (source === 'ai') return '生成';
+    if (source === 'import') return '导入';
+    return '手动';
+  }
+
+  function renderWbEntry(entry: any): string {
+    const strategy = entry.strategy || 'selective';
+    const strategyTag = strategy === 'constant'
+      ? '<span class="pl-wb-entry-tag tag-constant">始终启用</span>'
+      : strategy === 'vectorized'
+        ? '<span class="pl-wb-entry-tag tag-selective">向量化</span>'
+        : '<span class="pl-wb-entry-tag tag-selective">关键词触发</span>';
+
+    const sourceClass = getSourceClass(entry.source || 'manual');
+    const sourceLabel = getSourceLabel(entry.source || 'manual');
+
+    const keys = Array.isArray(entry.keys) ? entry.keys : [];
+    const keysHtml = keys.length
+      ? keys.map((k: string) => escapeHTML(k)).join(', ')
+      : '无触发词';
+
+    const content = entry.content || '';
+    const order = entry.order !== undefined ? entry.order : 100;
+    const prob = entry.prob !== undefined ? entry.prob : 100;
+
+    return `
+      <div class="pl-wb-entry">
+        <div class="pl-wb-entry-top">
+          <h4 class="pl-wb-entry-title">${escapeHTML(entry.comment || '未命名条目')}</h4>
+          <span class="pl-wb-entry-order">插入顺序 ${order}</span>
+        </div>
+        <div class="pl-wb-entry-tags">
+          ${strategyTag}
+          <span class="pl-wb-entry-tag ${sourceClass}">${sourceLabel}</span>
+          <span class="pl-wb-entry-tag tag-prob">优先级 ${prob}</span>
+          ${entry.position === 4 && entry.depth !== undefined && entry.depth !== 4 ? `<span class="pl-wb-entry-tag">Depth ${entry.depth}</span>` : ''}
+        </div>
+        <div class="pl-wb-entry-keys"><strong>触发词：</strong>${keysHtml}</div>
+        ${content ? `<div class="pl-wb-entry-preview">${escapeHTML(content)}</div>` : ''}
+      </div>`;
+  }
+
+  function renderWbGroup(position: number, entries: any[], isVanilla: boolean, collapsed: boolean = false): string {
+    if (!entries.length) return '';
+
+    const posLabels = isVanilla ? posLabelsVanilla : posLabelsST;
+    const label = posLabels[position] || `位置 ${position}`;
+    const strength = posStrength[position] || 'medium';
+
+    const sorted = entries.slice().sort((a: any, b: any) => (a.order || 100) - (b.order || 100));
+    const entriesHtml = sorted.map(renderWbEntry).join('');
+
+    return `
+      <div class="pl-wb-group ${collapsed ? 'is-collapsed' : ''}" data-strength="${strength}">
+        <div class="pl-wb-group-header">
+          <span class="pl-wb-group-toggle">▼</span>
+          <h3 class="pl-wb-group-title">📚 世界书 — ${escapeHTML(label)}</h3>
+          <span class="pl-wb-group-count">${entries.length} 条</span>
+        </div>
+        <div class="pl-wb-group-body">
+          ${entriesHtml}
+        </div>
+      </div>`;
+  }
+
+  function renderLayer(
+    icon: string,
+    label: string,
+    content: string,
+    opts: {
+      permanent?: boolean | null;
+      strength?: string;
+      infoOnly?: boolean;
+    } = {}
+  ): string {
+    const { permanent = null, strength = 'medium', infoOnly = false } = opts;
+    const empty = !content || !content.trim();
+
+    const permTag = infoOnly
+      ? '<span class="pl-layer-prompt-tag is-info">仅提示 · 不进入 Prompt</span>'
+      : permanent === true
+        ? '<span class="pl-layer-prompt-tag is-permanent">永久</span>'
+        : permanent === false
+          ? '<span class="pl-layer-prompt-tag is-temporary">临时</span>'
+          : '';
+
+    const charInfo = !empty ? `<div class="pl-layer-charcount">${charCount(content)} 字</div>` : '';
+
+    const contentHtml = !empty
+      ? `<p class="pl-layer-content">${escapeHTML(content)}</p>${charInfo}`
+      : `<p class="pl-layer-empty">（未填写）</p>`;
+
+    const headerClass = infoOnly ? 'pl-layer-header is-info-only' : 'pl-layer-header';
+
+    return `
+      <div class="pl-layer" data-strength="${strength}">
+        <div class="${headerClass}" data-empty="${empty && !infoOnly}">
+          <div class="pl-layer-label">
+            <span class="pl-layer-label-icon">${icon}</span>
+            ${escapeHTML(label)}
+            ${permTag}
+          </div>
+          ${contentHtml}
+        </div>
+      </div>`;
+  }
+
+  function renderDivider(text: string): string {
+    return `
+      <div class="pl-divider">
+        <div class="pl-divider-inner">${escapeHTML(text)}</div>
+      </div>`;
+  }
+
+  function renderStrengthBar(): string {
+    return `
+      <div class="pl-strength-bar">
+        <p class="pl-strength-label">影响强度：越靠下对当前对话影响越强</p>
+        <div class="pl-strength-track"></div>
+        <div class="pl-strength-labels">
+          <span>最弱</span>
+          <span>最强</span>
+        </div>
+      </div>`;
+  }
+
+  function buildPromptLayout(): string {
+    const container = document.getElementById('promptLayoutView');
+    if (!container) return '';
+
+    // Detect card format
+    const isVanilla = (window as any).__cardFormat__ === 'vanilla';
+
+    // Gather data
+    const charDescEl = document.getElementById('charDesc') as HTMLTextAreaElement | null;
+    const firstMesEl = document.getElementById('firstMes') as HTMLTextAreaElement | null;
+    const creatorNotesEl = document.getElementById('creatorNotes') as HTMLTextAreaElement | null;
+
+    const charDesc = charDescEl?.value || '';
+    const firstMes = firstMesEl?.value || '';
+    const creatorNotes = creatorNotesEl?.value || '';
+
+    const cardMeta = importedCardMetaStore.get();
+    const personality = cardMeta?.personality || '';
+    const scenario = cardMeta?.scenario || '';
+    const mesExample = cardMeta?.mesExample || '';
+
+    // Get worldbook entries
+    const entries: any[] = typeof (window as any).__getWorldbookEntries__ === 'function'
+      ? (window as any).__getWorldbookEntries__()
+      : [];
+
+    // Split by position
+    const byPos: Record<number, any[]> = {};
+    const constantEntries: any[] = [];
+
+    entries.forEach((entry: any) => {
+      if (!entry.enabled && entry.enabled !== undefined) return;
+      const strategy = entry.strategy || 'selective';
+
+      if (strategy === 'constant') {
+        constantEntries.push(entry);
+        return;
+      }
+
+      const pos = entry.position !== undefined ? entry.position : 4;
+      if (!byPos[pos]) byPos[pos] = [];
+      byPos[pos].push(entry);
+    });
+
+    // Also include disabled entries for visualization
+    const disabledEntries: any[] = [];
+    entries.forEach((entry: any) => {
+      if (entry.enabled === false) {
+        disabledEntries.push(entry);
+      }
+    });
+
+    // Sort each position group by order
+    Object.values(byPos).forEach((group: any[]) => {
+      group.sort((a: any, b: any) => (a.order || 100) - (b.order || 100));
+    });
+
+    // Build HTML
+    let html = '';
+
+    // Format banner
+    if (isVanilla) {
+      html += `<div class="pl-format-banner">
+        <span class="pl-format-badge is-vanilla">Vanilla AI</span>
+        <span>香草角色卡格式 — 无作者注释和 EM 位置层级</span>
+      </div>`;
+    } else {
+      html += `<div class="pl-format-banner">
+        <span class="pl-format-badge is-st">SillyTavern V3</span>
+        <span>完整 Prompt 排布，包含所有位置层级</span>
+      </div>`;
+    }
+
+    // 1. Constant worldbook entries
+    html += renderWbGroup(-1, constantEntries, isVanilla);
+
+    // 2. Worldbook entries at position 0 (before character definition)
+    html += renderWbGroup(0, byPos[0] || [], isVanilla);
+
+    // 3. Character description
+    html += renderLayer('🎭', '角色描述 (Character Description)', charDesc, { permanent: true, strength: 'weak' });
+
+    // 4. Worldbook entries at position 1 (after character definition)
+    html += renderWbGroup(1, byPos[1] || [], isVanilla);
+
+    // 5. Personality
+    html += renderLayer('💡', '性格 (Personality)', personality, { permanent: true, strength: 'medium' });
+
+    // 6. Scenario
+    html += renderLayer('🎬', '场景 (Scenario)', scenario, { permanent: true, strength: 'medium' });
+
+    // 7. Example dialogue
+    html += renderLayer('💬', '对话示例 (Example Dialogue)', mesExample, { permanent: false, strength: 'medium' });
+
+    // 8. First message
+    html += renderLayer('📝', '开场白 (First Message)', firstMes, { permanent: false, strength: 'medium' });
+
+    if (!isVanilla) {
+      // ─── SillyTavern full layout ───
+
+      // 9. Chat history divider
+      html += renderDivider('··· 聊天记录（随对话增长，早期内容会被推出上下文）···');
+
+      // 10. Worldbook entries at position 5 (before author's note)
+      html += renderWbGroup(5, byPos[5] || [], isVanilla);
+
+      // 11. Creator notes / Author's note
+      html += renderLayer('✏️', '创作者备注 (Creator Notes)', creatorNotes, { permanent: true, strength: 'strong' });
+
+      // 12. Worldbook entries at position 6 (after author's note)
+      html += renderWbGroup(6, byPos[6] || [], isVanilla);
+
+      // 13. @D depth entries (position 4)
+      html += renderWbGroup(4, byPos[4] || [], isVanilla);
+
+      // 14. Positions 2, 3 (EM positions, less common)
+      if (byPos[2]?.length) html += renderWbGroup(2, byPos[2], isVanilla);
+      if (byPos[3]?.length) html += renderWbGroup(3, byPos[3], isVanilla);
+    } else {
+      // ─── Vanilla AI simplified layout ───
+
+      // @D depth entries (position 4)
+      html += renderWbGroup(4, byPos[4] || [], isVanilla);
+
+      // Creator notes — greyed out, info only
+      html += renderLayer('📋', '创作者备注 (Creator Notes)', creatorNotes, { infoOnly: true, strength: 'weak' });
+    }
+
+    // Disabled entries (informational, shown in both modes)
+    if (disabledEntries.length) {
+      const disabledHtml = disabledEntries.map((e: any) => {
+        return `
+          <div class="pl-wb-entry" style="opacity: 0.45; border-style: dashed;">
+            <div class="pl-wb-entry-top">
+              <h4 class="pl-wb-entry-title">${escapeHTML(e.comment || '未命名条目')}</h4>
+              <span class="pl-wb-entry-tag" style="color: var(--danger); border-color: rgba(185,28,28,0.3);">已禁用</span>
+            </div>
+          </div>`;
+      }).join('');
+
+      html += `
+        <div class="pl-wb-group is-collapsed" data-strength="weak">
+          <div class="pl-wb-group-header">
+            <span class="pl-wb-group-toggle">▼</span>
+            <h3 class="pl-wb-group-title">🚫 已禁用条目</h3>
+            <span class="pl-wb-group-count">${disabledEntries.length} 条</span>
+          </div>
+          <div class="pl-wb-group-body">
+            ${disabledHtml}
+          </div>
+        </div>`;
+    }
+
+    // Strength bar
+    html += renderStrengthBar();
+
+    container.innerHTML = html;
+
+    // Bind collapse toggles
+    container.querySelectorAll('.pl-wb-group-header').forEach((header) => {
+      header.addEventListener('click', () => {
+        const group = header.closest('.pl-wb-group');
+        group?.classList.toggle('is-collapsed');
+      });
+    });
+
+    return html;
+  }
+
+  // Render on load
+  buildPromptLayout();
+
+  // Re-render on worldbook changes
+  window.addEventListener('worldbook-changed', () => {
+    buildPromptLayout();
+  });
+
+  // Re-render when switching to this tab
+  const observer = new MutationObserver(() => {
+    const section = document.querySelector('[data-workspace-section="prompt-layout"]') as HTMLElement;
+    if (section && !section.hidden) {
+      buildPromptLayout();
+    }
+  });
+
+  const promptSection = document.querySelector('[data-workspace-section="prompt-layout"]');
+  if (promptSection) {
+    observer.observe(promptSection, { attributes: true, attributeFilter: ['hidden'] });
+  }
+</script>

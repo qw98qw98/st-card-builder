@@ -5,6 +5,7 @@ import WorkspaceNav from '../components/WorkspaceNav.astro';
 import ImportExportCenter from '../components/ImportExportCenter.astro';
 import CharacterPanel from '../components/CharacterPanel.astro';
 import WorldbookPanel from '../components/WorldbookPanel.astro';
+import PromptLayoutPanel from '../components/PromptLayoutPanel.astro';
 ---
 
 <Layout title="然然工坊">
@@ -13,6 +14,7 @@ import WorldbookPanel from '../components/WorldbookPanel.astro';
   <WorkspaceNav tabs={[
     { target: 'core', label: '核心设置', selected: true },
     { target: 'worldbook', label: '世界书' },
+    { target: 'prompt-layout', label: 'Prompt 排布' },
   ]} />
 
   <div class="app-container">
@@ -37,6 +39,18 @@ import WorldbookPanel from '../components/WorldbookPanel.astro';
       </div>
       <div class="workspace-stack">
         <WorldbookPanel />
+      </div>
+    </section>
+
+    <section class="workspace-section" data-workspace-section="prompt-layout" hidden>
+      <div class="workspace-section-header">
+        <div>
+          <h2 class="workspace-section-title">Prompt 排布</h2>
+          <p class="workspace-section-desc">可视化角色卡 Prompt 在上下文中的排布顺序，评估 Prompt 工程设计</p>
+        </div>
+      </div>
+      <div class="workspace-stack">
+        <PromptLayoutPanel />
       </div>
     </section>
   </div>
@@ -586,7 +600,7 @@ import WorldbookPanel from '../components/WorldbookPanel.astro';
         wbPreviewOrder.textContent = '顺序 · ' + String(entry.order !== undefined ? entry.order : 100);
       }
       if (wbPreviewProb) {
-        wbPreviewProb.textContent = '概率 · ' + String(entry.prob !== undefined ? entry.prob : 100) + '%';
+        wbPreviewProb.textContent = '优先级 · ' + String(entry.prob !== undefined ? entry.prob : 100);
       }
       if (wbPreviewTitle) {
         wbPreviewTitle.textContent = entry.comment || '未命名条目';
@@ -661,7 +675,7 @@ import WorldbookPanel from '../components/WorldbookPanel.astro';
               return '<span class="wb-preview-key-chip">' + escapeHTML(key) + '</span>';
             }).join('')
           : '<span class="wb-preview-key-chip">无触发词</span>';
-        var safeMeta = '位置: ' + escapeHTML(posMap[entry.position] || String(entry.position)) + ' · 顺序: ' + escapeHTML(String(entry.order)) + ' · 深度: ' + escapeHTML(String(entry.depth)) + ' · 概率: ' + escapeHTML(String(entry.prob)) + '%';
+        var safeMeta = '位置: ' + escapeHTML(posMap[entry.position] || String(entry.position)) + ' · 顺序: ' + escapeHTML(String(entry.order)) + ' · 深度: ' + escapeHTML(String(entry.depth)) + ' · 优先级: ' + escapeHTML(String(entry.prob));
         var selected = selectedWorldbookIndex === index;
 
         return '' +
@@ -792,6 +806,10 @@ import WorldbookPanel from '../components/WorldbookPanel.astro';
 window.applyJSONFromEditor = function(json) {
   var card = normalizeImportedCharacterCard(json);
   if (!card) return;
+
+  // ★ Detect card format: Vanilla AI has no `data` layer and no `spec`
+  var isVanillaCard = !json.data && !json.spec;
+  window.__cardFormat__ = isVanillaCard ? 'vanilla' : 'sillytavern';
 
   var root = getCardRootPayload(json) || {};
   var importedCharacterBook = (root.character_book && typeof root.character_book === 'object')
@@ -1096,6 +1114,7 @@ window.__setImportedAvatar__ = function(src, skipCommit, exportBase64) {
       importedCardMetaStore.set(null);
       window.__importedWorldbookMeta__ = null;
       importedWorldbookMetaStore.set(null);
+      window.__cardFormat__ = 'sillytavern';
       selectedWorldbookIndex = -1;
       worldbookBrowseFilter = 'all';
       updateWorldbookFilterUI();
@@ -1488,7 +1507,7 @@ window.__setImportedAvatar__ = function(src, skipCommit, exportBase64) {
         var safeComment = escapeHTML(entry.comment || '未命名');
         var safePreview = escapeHTML(preview || '（空内容）');
         var safeKeys = escapeHTML(keysText);
-        var safeMeta = '位置: ' + escapeHTML(posMap[entry.position] || String(entry.position)) + ' · 顺序: ' + escapeHTML(String(entry.order)) + ' · 深度: ' + escapeHTML(String(entry.depth)) + ' · 概率: ' + escapeHTML(String(entry.prob)) + '%';
+        var safeMeta = '位置: ' + escapeHTML(posMap[entry.position] || String(entry.position)) + ' · 顺序: ' + escapeHTML(String(entry.order)) + ' · 深度: ' + escapeHTML(String(entry.depth)) + ' · 优先级: ' + escapeHTML(String(entry.prob));
         var div = document.createElement('div');
         div.className = 'wb-entry fade-in' + (selectedWorldbookIndex === index ? ' is-selected' : '');
         div.setAttribute('data-worldbook-index', String(index));
