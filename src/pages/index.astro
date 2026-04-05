@@ -1234,15 +1234,14 @@ window.__setImportedAvatar__ = function(src, skipCommit, exportBase64) {
         try {
           var bytes = new Uint8Array(results[0]);
           var avatarBase64 = results[1];
-          var charaB64 = extractPNGCharaChunk(bytes);
-          if (!charaB64) {
+          var charaJson = extractPNGCharaChunk(bytes);
+          if (!charaJson) {
             window.__setImportedAvatar__(avatarBase64, false, avatarBase64);
             showImportStatus('✅ 已更新头像「' + (fallbackName || file.name) + '」', 'ok');
             return;
           }
 
-          var jsonStr = decodeURIComponent(escape(atob(charaB64)));
-          var payload = JSON.parse(jsonStr);
+          var payload = JSON.parse(charaJson);
           if (!isCharacterCardPayload(payload)) {
             throw new Error('PNG 中的角色数据不是有效角色卡');
           }
