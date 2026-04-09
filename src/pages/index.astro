@@ -6,6 +6,7 @@ import ImportExportCenter from '../components/ImportExportCenter.astro';
 import CharacterPanel from '../components/CharacterPanel.astro';
 import WorldbookPanel from '../components/WorldbookPanel.astro';
 import PromptLayoutPanel from '../components/PromptLayoutPanel.astro';
+import XpPreferencePanel from '../components/XpPreferencePanel.astro';
 ---
 
 <Layout title="然然工坊">
@@ -15,6 +16,7 @@ import PromptLayoutPanel from '../components/PromptLayoutPanel.astro';
     { target: 'core', label: '核心设置', selected: true },
     { target: 'worldbook', label: '世界书' },
     { target: 'prompt-layout', label: 'Prompt 排布' },
+    { target: 'xp-preference', label: 'XP 偏好设定集' },
   ]} />
 
   <div class="app-container">
@@ -51,6 +53,18 @@ import PromptLayoutPanel from '../components/PromptLayoutPanel.astro';
       </div>
       <div class="workspace-stack">
         <PromptLayoutPanel />
+      </div>
+    </section>
+
+    <section class="workspace-section" data-workspace-section="xp-preference" hidden>
+      <div class="workspace-section-header">
+        <div>
+          <h2 class="workspace-section-title">XP 偏好设定集</h2>
+          <p class="workspace-section-desc">静态嵌入原始 HTML 预览</p>
+        </div>
+      </div>
+      <div class="workspace-stack">
+        <XpPreferencePanel />
       </div>
     </section>
   </div>
