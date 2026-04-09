@@ -8018,8 +8018,42 @@
         </div>
 
         <script>
-            let favorites = JSON.parse(localStorage.getItem('my_xp_favs')) || [];
+            const FAVORITES_STORAGE_KEY = 'my_xp_favs';
+
+            function loadFavorites() {
+                try {
+                    const raw = localStorage.getItem(FAVORITES_STORAGE_KEY);
+                    if (!raw) return [];
+
+                    const parsed = JSON.parse(raw);
+                    if (!Array.isArray(parsed)) return [];
+
+                    return parsed.filter(item => (
+                        item
+                        && typeof item.id === 'string'
+                        && typeof item.name === 'string'
+                        && typeof item.desc === 'string'
+                    ));
+                } catch (err) {
+                    return [];
+                }
+            }
+
+            function saveFavorites() {
+                try {
+                    localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(favorites));
+                } catch (err) {}
+            }
+
+            let favorites = loadFavorites();
             renderFavs();
+            saveFavorites();
+
+            window.addEventListener('storage', function (event) {
+                if (event.key !== FAVORITES_STORAGE_KEY) return;
+                favorites = loadFavorites();
+                renderFavs();
+            });
 
             // --- 搜索逻辑 (含自动展开) ---
             function doSearch() {
@@ -8070,7 +8104,6 @@
                         <span onclick="event.stopPropagation(); removeFav('${f.id}')" style="color:#ff3b30; font-size:1.2rem; padding:0 5px;">×</span>
                     </div>
                 `).join('');
-                localStorage.setItem('my_xp_favs', JSON.stringify(favorites));
             }
 
             function locate(id, name, desc) {
@@ -8091,14 +8124,28 @@
                 document.getElementById('m-desc').innerText = desc;
                 document.getElementById('overlay').style.display = 'flex';
                 document.getElementById('confirm-btn').onclick = () => {
-                    if(!favorites.some(f => f.id === id)) { favorites.push({id, name, desc}); renderFavs(); }
+                    if(!favorites.some(f => f.id === id)) {
+                        favorites.push({id, name, desc});
+                        renderFavs();
+                        saveFavorites();
+                    }
                     closeModal();
                 };
             }
 
             function closeModal() { document.getElementById('overlay').style.display = 'none'; }
-            function removeFav(id) { favorites = favorites.filter(f=>f.id!==id); renderFavs(); }
-            function clearAll() { if(confirm('确定清空收藏？')){favorites=[]; renderFavs();} }
+            function removeFav(id) {
+                favorites = favorites.filter(f => f.id !== id);
+                renderFavs();
+                saveFavorites();
+            }
+            function clearAll() {
+                if (confirm('确定清空收藏？')) {
+                    favorites = [];
+                    renderFavs();
+                    saveFavorites();
+                }
+            }
         </script>
     </body>
     </html>
