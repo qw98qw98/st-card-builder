@@ -44,6 +44,10 @@
                 background: #fff;
                 margin-bottom: 12px;
                 overflow: hidden;
+                transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            }
+            .fav-group.is-collapsed {
+                box-shadow: none;
             }
             .fav-group-header {
                 padding: 12px 14px;
@@ -73,6 +77,8 @@
                 display: flex;
                 gap: 8px;
                 flex-shrink: 0;
+                flex-wrap: wrap;
+                justify-content: flex-end;
             }
             .mini-btn {
                 border: 1px solid #d1d1d6;
@@ -82,12 +88,17 @@
                 padding: 6px 10px;
                 cursor: pointer;
                 font-size: 0.82rem;
+                line-height: 1;
+                white-space: nowrap;
             }
             .fav-group-items {
                 padding: 10px;
                 display: flex;
                 flex-direction: column;
                 gap: 8px;
+            }
+            .fav-group.is-collapsed .fav-group-items {
+                display: none;
             }
             .fav-empty,
             .fav-empty-group {
@@ -105,7 +116,6 @@
                 background: #fff;
             }
             .sidebar-actions button,
-            .sidebar-footer button,
             .save-panel button {
                 flex: 1;
                 min-width: 0;
@@ -115,11 +125,6 @@
                 border-radius: 10px;
                 cursor: pointer;
                 font-weight: 600;
-            }
-            .sidebar-footer {
-                padding: 15px;
-                border-top: 1px solid #eee;
-                background: #fff;
             }
             .save-panel {
                 margin-top: 18px;
@@ -8135,9 +8140,6 @@
                 <button onclick="exportMarkdown()">导出 MD</button>
             </div>
             <div class="fav-list" id="fav-list"></div>
-            <div class="sidebar-footer">
-                <button onclick="clearAll()">清空全部</button>
-            </div>
         </div>
 
         <div class="modal-overlay" id="overlay" onclick="closeModal(event)">
@@ -8185,11 +8187,13 @@
                     ? source.name.trim()
                     : DEFAULT_GROUP_NAME + (index > 0 ? ' ' + (index + 1) : '');
                 const id = typeof source.id === 'string' && source.id.trim() ? source.id.trim() : createId('grp');
+                const collapsed = source.collapsed === true;
 
                 return {
                     id: id,
                     name: name,
-                    items: items
+                    items: items,
+                    collapsed: collapsed
                 };
             }
 
@@ -8199,7 +8203,8 @@
                         groups: [{
                             id: createId('grp'),
                             name: DEFAULT_GROUP_NAME,
-                            items: raw.map(normalizeFavorite).filter(Boolean)
+                            items: raw.map(normalizeFavorite).filter(Boolean),
+                            collapsed: false
                         }],
                         lastGroupId: ''
                     };
@@ -8214,7 +8219,8 @@
                         groups = [{
                             id: createId('grp'),
                             name: DEFAULT_GROUP_NAME,
-                            items: raw.items.map(normalizeFavorite).filter(Boolean)
+                            items: raw.items.map(normalizeFavorite).filter(Boolean),
+                            collapsed: false
                         }];
                     }
 
@@ -8253,6 +8259,14 @@
                     .replace(/>/g, '&gt;')
                     .replace(/"/g, '&quot;')
                     .replace(/'/g, '&#39;');
+            }
+
+            function safeDecodeComponent(value) {
+                try {
+                    return decodeURIComponent(value);
+                } catch (err) {
+                    return value;
+                }
             }
 
             function getGroupById(groupId) {
@@ -8319,12 +8333,14 @@
                 }
 
                 list.innerHTML = favoriteState.groups.map(function(group) {
+                    const collapsedClass = group.collapsed ? ' is-collapsed' : '';
+                    const toggleLabel = group.collapsed ? '展开' : '收起';
                     const groupItems = group.items.length ? group.items.map(function(item) {
                         return (
                             '<div class="fav-item" onclick=\'locate(' +
-                            JSON.stringify(item.id) + ', ' +
-                            JSON.stringify(item.name) + ', ' +
-                            JSON.stringify(item.desc) +
+                            JSON.stringify(encodeURIComponent(item.id)) + ', ' +
+                            JSON.stringify(encodeURIComponent(item.name)) + ', ' +
+                            JSON.stringify(encodeURIComponent(item.desc)) +
                             ')\'>'
                             + '<span><b>' + escapeHtml(item.id) + '</b> ' + escapeHtml(item.name) + '</span>'
                             + '<span onclick=\'event.stopPropagation(); removeFav(' + JSON.stringify(item.id) + ')\' style="color:#ff3b30; font-size:1.2rem; padding:0 5px;">×</span>'
@@ -8333,14 +8349,17 @@
                     }).join('') : '<div class="fav-empty-group">此分组暂无偏好</div>';
 
                     return (
-                        '<div class="fav-group">' +
+                        '<div class="fav-group' + collapsedClass + '">' +
                             '<div class="fav-group-header">' +
                                 '<div class="fav-group-title">' +
                                     '<strong>' + escapeHtml(group.name) + '</strong>' +
                                     '<span class="fav-group-meta">' + group.items.length + ' 项</span>' +
                                 '</div>' +
                                 '<div class="fav-group-actions">' +
+                                    '<button class="mini-btn" onclick=\'event.stopPropagation(); toggleGroupCollapse(' + JSON.stringify(group.id) + ')\'>'
+                                        + toggleLabel + '</button>' +
                                     '<button class="mini-btn" onclick=\'renameGroup(' + JSON.stringify(group.id) + ')\'>重命名</button>' +
+                                    '<button class="mini-btn" style="color:#d92d20; border-color:#f2b8b5;" onclick=\'deleteGroup(' + JSON.stringify(group.id) + ')\'>删除分组</button>' +
                                 '</div>' +
                             '</div>' +
                             '<div class="fav-group-items">' + groupItems + '</div>' +
@@ -8363,7 +8382,8 @@
                     targetGroup = {
                         id: createId('grp'),
                         name: customGroupName,
-                        items: []
+                        items: [],
+                        collapsed: false
                     };
                     favoriteState.groups.push(targetGroup);
                 } else {
@@ -8372,7 +8392,8 @@
                         targetGroup = {
                             id: createId('grp'),
                             name: DEFAULT_GROUP_NAME,
-                            items: []
+                            items: [],
+                            collapsed: false
                         };
                         favoriteState.groups.push(targetGroup);
                     }
@@ -8401,7 +8422,8 @@
                 const group = {
                     id: createId('grp'),
                     name: trimmedName,
-                    items: []
+                    items: [],
+                    collapsed: false
                 };
                 favoriteState.groups.push(group);
                 favoriteState.lastGroupId = group.id;
@@ -8420,6 +8442,35 @@
                 if (!trimmedName) return;
 
                 group.name = trimmedName;
+                saveFavoriteState();
+                renderFavs();
+            }
+
+            function toggleGroupCollapse(groupId) {
+                const group = getGroupById(groupId);
+                if (!group) return;
+
+                group.collapsed = !group.collapsed;
+                saveFavoriteState();
+                renderFavs();
+            }
+
+            function deleteGroup(groupId) {
+                const group = getGroupById(groupId);
+                if (!group) return;
+
+                if (!confirm('确定删除分组「' + group.name + '」吗？其中的偏好也会一并删除。')) {
+                    return;
+                }
+
+                favoriteState.groups = favoriteState.groups.filter(function(existing) {
+                    return existing.id !== groupId;
+                });
+
+                if (favoriteState.lastGroupId === groupId) {
+                    favoriteState.lastGroupId = favoriteState.groups[0] ? favoriteState.groups[0].id : '';
+                }
+
                 saveFavoriteState();
                 renderFavs();
             }
@@ -8509,14 +8560,19 @@
 
             // --- 收藏核心 ---
             function locate(id, name, desc) {
+                const decodedId = safeDecodeComponent(id);
+                const decodedName = safeDecodeComponent(name);
+                const decodedDesc = safeDecodeComponent(desc);
                 const btn = document.getElementById('btn-' + id);
-                if(btn) {
-                    let p = btn.parentElement;
+                const decodedBtn = document.getElementById('btn-' + decodedId);
+                const targetBtn = btn || decodedBtn;
+                if(targetBtn) {
+                    let p = targetBtn.parentElement;
                     while(p && p.tagName !== 'BODY') { if(p.tagName==='DETAILS') p.open=true; p=p.parentElement; }
-                    btn.scrollIntoView({behavior:'smooth', block:'center'});
-                    btn.style.background = '#fff9c4';
-                    setTimeout(() => btn.style.background = '#fff', 2000);
-                    showModal(id, name, desc);
+                    targetBtn.scrollIntoView({behavior:'smooth', block:'center'});
+                    targetBtn.style.background = '#fff9c4';
+                    setTimeout(() => targetBtn.style.background = '#fff', 2000);
+                    showModal(decodedId, decodedName, decodedDesc);
                     if(window.innerWidth <= 900) toggleSidebar(); 
                 }
             }
@@ -8565,17 +8621,6 @@
                 });
                 renderFavs();
                 saveFavoriteState();
-            }
-            function clearAll() {
-                if (confirm('确定清空收藏？')) {
-                    favoriteState = {
-                        groups: [],
-                        lastGroupId: ''
-                    };
-                    activeModalItem = null;
-                    renderFavs();
-                    saveFavoriteState();
-                }
             }
         </script>
     </body>
