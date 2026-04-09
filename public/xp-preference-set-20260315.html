@@ -37,6 +37,133 @@
                 background: #f2f2f7; padding: 12px; border-radius: 10px; margin-bottom: 10px;
                 display: flex; justify-content: space-between; align-items: center; cursor: pointer;
             }
+            .fav-item span:first-child { flex: 1; min-width: 0; word-break: break-word; }
+            .fav-group {
+                border: 1px solid #e5e5ea;
+                border-radius: 14px;
+                background: #fff;
+                margin-bottom: 12px;
+                overflow: hidden;
+            }
+            .fav-group-header {
+                padding: 12px 14px;
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                gap: 12px;
+                background: #fafafa;
+                border-bottom: 1px solid #eee;
+            }
+            .fav-group-title {
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+                min-width: 0;
+            }
+            .fav-group-title strong {
+                font-size: 0.98rem;
+                line-height: 1.35;
+                word-break: break-word;
+            }
+            .fav-group-meta {
+                font-size: 0.8rem;
+                color: #8e8e93;
+            }
+            .fav-group-actions {
+                display: flex;
+                gap: 8px;
+                flex-shrink: 0;
+            }
+            .mini-btn {
+                border: 1px solid #d1d1d6;
+                background: #fff;
+                color: #1c1c1e;
+                border-radius: 999px;
+                padding: 6px 10px;
+                cursor: pointer;
+                font-size: 0.82rem;
+            }
+            .fav-group-items {
+                padding: 10px;
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+            }
+            .fav-empty,
+            .fav-empty-group {
+                padding: 18px 12px;
+                color: #8e8e93;
+                text-align: center;
+                font-size: 0.92rem;
+            }
+            .sidebar-actions {
+                padding: 12px 15px;
+                border-bottom: 1px solid #eee;
+                display: flex;
+                gap: 8px;
+                flex-wrap: wrap;
+                background: #fff;
+            }
+            .sidebar-actions button,
+            .sidebar-footer button,
+            .save-panel button {
+                flex: 1;
+                min-width: 0;
+                padding: 10px 12px;
+                border: 1px solid #d1d1d6;
+                background: #fff;
+                border-radius: 10px;
+                cursor: pointer;
+                font-weight: 600;
+            }
+            .sidebar-footer {
+                padding: 15px;
+                border-top: 1px solid #eee;
+                background: #fff;
+            }
+            .save-panel {
+                margin-top: 18px;
+                padding: 14px;
+                border: 1px solid #e5e5ea;
+                border-radius: 14px;
+                background: #f9f9fb;
+                text-align: left;
+            }
+            .save-panel-title {
+                font-size: 0.9rem;
+                font-weight: 700;
+                margin-bottom: 10px;
+                color: #1c1c1e;
+            }
+            .save-panel-row {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+            }
+            .save-panel select,
+            .save-panel input {
+                width: 100%;
+                padding: 10px 12px;
+                border-radius: 10px;
+                border: 1px solid #d1d1d6;
+                background: #fff;
+                outline: none;
+            }
+            .save-panel select:focus,
+            .save-panel input:focus {
+                border-color: var(--primary);
+            }
+            .save-status {
+                margin-top: 8px;
+                font-size: 0.82rem;
+                color: #636366;
+            }
+            .save-panel-tip {
+                margin-top: 8px;
+                font-size: 0.8rem;
+                color: #8e8e93;
+                line-height: 1.5;
+            }
 
             /* --- 折叠与按钮 --- */
             .cat-details { background: var(--card); border-radius: 14px; margin-bottom: 15px; border: 1px solid #e5e5ea; overflow: hidden; }
@@ -8003,9 +8130,13 @@
                 <span>已存偏好</span>
                 <span style="cursor:pointer; padding: 5px 10px;" onclick="toggleSidebar()">✕</span>
             </div>
+            <div class="sidebar-actions">
+                <button onclick="createGroup()">新建分组</button>
+                <button onclick="exportMarkdown()">导出 MD</button>
+            </div>
             <div class="fav-list" id="fav-list"></div>
-            <div style="padding:15px; border-top:1px solid #eee;">
-                <button onclick="clearAll()" style="width:100%; padding:10px; border:1px solid #ddd; background:white; border-radius:8px;">清空全部</button>
+            <div class="sidebar-footer">
+                <button onclick="clearAll()">清空全部</button>
             </div>
         </div>
 
@@ -8013,45 +8144,326 @@
             <div class="modal-content" onclick="event.stopPropagation()">
                 <div id="m-title" style="font-size:1.3rem; font-weight:bold; color:var(--primary); margin-bottom:15px;"></div>
                 <div id="m-desc" style="text-align:left; line-height:1.6; font-size:0.95rem;"></div>
-                <button class="select-btn" id="confirm-btn">选择此偏好</button>
+                <div class="save-panel">
+                    <div class="save-panel-title">保存到已存偏好</div>
+                    <div class="save-panel-row">
+                        <select id="group-select"></select>
+                        <input type="text" id="new-group-input" placeholder="新组名称（留空则使用所选分组）">
+                    </div>
+                    <div class="save-status" id="save-status"></div>
+                    <div class="save-panel-tip">填写新组名称会自动新建分组；留空则保存到所选分组。</div>
+                </div>
+                <button class="select-btn" id="confirm-btn">保存到分组</button>
             </div>
         </div>
 
         <script>
             const FAVORITES_STORAGE_KEY = 'my_xp_favs';
+            const DEFAULT_GROUP_NAME = '默认分组';
+            let activeModalItem = null;
 
-            function loadFavorites() {
+            function createId(prefix) {
+                return prefix + '-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
+            }
+
+            function normalizeFavorite(item) {
+                if (!item || typeof item.id !== 'string' || typeof item.name !== 'string' || typeof item.desc !== 'string') {
+                    return null;
+                }
+
+                return {
+                    id: item.id,
+                    name: item.name,
+                    desc: item.desc
+                };
+            }
+
+            function normalizeGroup(group, index) {
+                const source = group && typeof group === 'object' ? group : {};
+                const items = Array.isArray(source.items) ? source.items.map(normalizeFavorite).filter(Boolean) : [];
+                const name = typeof source.name === 'string' && source.name.trim()
+                    ? source.name.trim()
+                    : DEFAULT_GROUP_NAME + (index > 0 ? ' ' + (index + 1) : '');
+                const id = typeof source.id === 'string' && source.id.trim() ? source.id.trim() : createId('grp');
+
+                return {
+                    id: id,
+                    name: name,
+                    items: items
+                };
+            }
+
+            function normalizeState(raw) {
+                if (Array.isArray(raw)) {
+                    return {
+                        groups: [{
+                            id: createId('grp'),
+                            name: DEFAULT_GROUP_NAME,
+                            items: raw.map(normalizeFavorite).filter(Boolean)
+                        }],
+                        lastGroupId: ''
+                    };
+                }
+
+                if (raw && typeof raw === 'object') {
+                    let groups = [];
+
+                    if (Array.isArray(raw.groups)) {
+                        groups = raw.groups.map(normalizeGroup);
+                    } else if (Array.isArray(raw.items)) {
+                        groups = [{
+                            id: createId('grp'),
+                            name: DEFAULT_GROUP_NAME,
+                            items: raw.items.map(normalizeFavorite).filter(Boolean)
+                        }];
+                    }
+
+                    return {
+                        groups: groups,
+                        lastGroupId: typeof raw.lastGroupId === 'string' ? raw.lastGroupId : ''
+                    };
+                }
+
+                return {
+                    groups: [],
+                    lastGroupId: ''
+                };
+            }
+
+            function loadFavoriteState() {
                 try {
                     const raw = localStorage.getItem(FAVORITES_STORAGE_KEY);
-                    if (!raw) return [];
-
-                    const parsed = JSON.parse(raw);
-                    if (!Array.isArray(parsed)) return [];
-
-                    return parsed.filter(item => (
-                        item
-                        && typeof item.id === 'string'
-                        && typeof item.name === 'string'
-                        && typeof item.desc === 'string'
-                    ));
+                    if (!raw) return { groups: [], lastGroupId: '' };
+                    return normalizeState(JSON.parse(raw));
                 } catch (err) {
-                    return [];
+                    return { groups: [], lastGroupId: '' };
                 }
             }
 
-            function saveFavorites() {
+            function saveFavoriteState() {
                 try {
-                    localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(favorites));
+                    localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(favoriteState));
                 } catch (err) {}
             }
 
-            let favorites = loadFavorites();
+            function escapeHtml(text) {
+                return String(text)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
+            }
+
+            function getGroupById(groupId) {
+                return favoriteState.groups.find(function(group) {
+                    return group.id === groupId;
+                }) || null;
+            }
+
+            function findGroupForItem(itemId) {
+                return favoriteState.groups.find(function(group) {
+                    return group.items.some(function(item) {
+                        return item.id === itemId;
+                    });
+                }) || null;
+            }
+
+            function renderGroupSelect(selectedGroupId, itemId) {
+                const select = document.getElementById('group-select');
+                const input = document.getElementById('new-group-input');
+                const status = document.getElementById('save-status');
+                if (!select) return;
+
+                const groups = favoriteState.groups;
+                if (groups.length) {
+                    select.innerHTML = groups.map(function(group) {
+                        return '<option value="' + escapeHtml(group.id) + '">' + escapeHtml(group.name) + '</option>';
+                    }).join('');
+                } else {
+                    select.innerHTML = '<option value="">默认分组（首次保存自动创建）</option>';
+                }
+
+                let nextSelected = '';
+                if (selectedGroupId && groups.some(function(group) { return group.id === selectedGroupId; })) {
+                    nextSelected = selectedGroupId;
+                } else if (favoriteState.lastGroupId && groups.some(function(group) { return group.id === favoriteState.lastGroupId; })) {
+                    nextSelected = favoriteState.lastGroupId;
+                } else if (groups[0]) {
+                    nextSelected = groups[0].id;
+                }
+                select.value = nextSelected;
+
+                if (input) {
+                    input.placeholder = groups.length ? '新组名称（留空则使用所选分组）' : '新组名称（可直接新建分组）';
+                }
+
+                if (status) {
+                    if (itemId) {
+                        const currentGroup = findGroupForItem(itemId);
+                        status.textContent = currentGroup ? '当前已在「' + currentGroup.name + '」' : '尚未保存到任何分组';
+                    } else {
+                        status.textContent = '';
+                    }
+                }
+            }
+
+            function renderFavs() {
+                const list = document.getElementById('fav-list');
+                if (!list) return;
+
+                if (!favoriteState.groups.length) {
+                    list.innerHTML = '<div class="fav-empty">暂无已存偏好，打开任意设定后可保存到分组。</div>';
+                    renderGroupSelect(activeModalItem ? (findGroupForItem(activeModalItem.id) ? findGroupForItem(activeModalItem.id).id : '') : '', activeModalItem ? activeModalItem.id : '');
+                    return;
+                }
+
+                list.innerHTML = favoriteState.groups.map(function(group) {
+                    const groupItems = group.items.length ? group.items.map(function(item) {
+                        return (
+                            '<div class="fav-item" onclick=\'locate(' +
+                            JSON.stringify(item.id) + ', ' +
+                            JSON.stringify(item.name) + ', ' +
+                            JSON.stringify(item.desc) +
+                            ')\'>'
+                            + '<span><b>' + escapeHtml(item.id) + '</b> ' + escapeHtml(item.name) + '</span>'
+                            + '<span onclick=\'event.stopPropagation(); removeFav(' + JSON.stringify(item.id) + ')\' style="color:#ff3b30; font-size:1.2rem; padding:0 5px;">×</span>'
+                            + '</div>'
+                        );
+                    }).join('') : '<div class="fav-empty-group">此分组暂无偏好</div>';
+
+                    return (
+                        '<div class="fav-group">' +
+                            '<div class="fav-group-header">' +
+                                '<div class="fav-group-title">' +
+                                    '<strong>' + escapeHtml(group.name) + '</strong>' +
+                                    '<span class="fav-group-meta">' + group.items.length + ' 项</span>' +
+                                '</div>' +
+                                '<div class="fav-group-actions">' +
+                                    '<button class="mini-btn" onclick=\'renameGroup(' + JSON.stringify(group.id) + ')\'>重命名</button>' +
+                                '</div>' +
+                            '</div>' +
+                            '<div class="fav-group-items">' + groupItems + '</div>' +
+                        '</div>'
+                    );
+                }).join('');
+
+                const selectedGroup = activeModalItem ? findGroupForItem(activeModalItem.id) : null;
+                renderGroupSelect(selectedGroup ? selectedGroup.id : favoriteState.lastGroupId, activeModalItem ? activeModalItem.id : '');
+            }
+
+            function savePreferenceToGroup(item, targetGroupId, newGroupName) {
+                const normalizedItem = normalizeFavorite(item);
+                if (!normalizedItem) return;
+
+                const customGroupName = typeof newGroupName === 'string' ? newGroupName.trim() : '';
+                let targetGroup = null;
+
+                if (customGroupName) {
+                    targetGroup = {
+                        id: createId('grp'),
+                        name: customGroupName,
+                        items: []
+                    };
+                    favoriteState.groups.push(targetGroup);
+                } else {
+                    targetGroup = getGroupById(targetGroupId) || getGroupById(favoriteState.lastGroupId) || favoriteState.groups[0] || null;
+                    if (!targetGroup) {
+                        targetGroup = {
+                            id: createId('grp'),
+                            name: DEFAULT_GROUP_NAME,
+                            items: []
+                        };
+                        favoriteState.groups.push(targetGroup);
+                    }
+                }
+
+                favoriteState.groups.forEach(function(group) {
+                    group.items = group.items.filter(function(existing) {
+                        return existing.id !== normalizedItem.id;
+                    });
+                });
+
+                targetGroup.items.push(normalizedItem);
+                favoriteState.lastGroupId = targetGroup.id;
+
+                saveFavoriteState();
+                renderFavs();
+            }
+
+            function createGroup() {
+                const groupName = prompt('请输入新分组名称', '新分组');
+                if (groupName === null) return;
+
+                const trimmedName = groupName.trim();
+                if (!trimmedName) return;
+
+                const group = {
+                    id: createId('grp'),
+                    name: trimmedName,
+                    items: []
+                };
+                favoriteState.groups.push(group);
+                favoriteState.lastGroupId = group.id;
+                saveFavoriteState();
+                renderFavs();
+            }
+
+            function renameGroup(groupId) {
+                const group = getGroupById(groupId);
+                if (!group) return;
+
+                const nextName = prompt('请输入新的分组名称', group.name);
+                if (nextName === null) return;
+
+                const trimmedName = nextName.trim();
+                if (!trimmedName) return;
+
+                group.name = trimmedName;
+                saveFavoriteState();
+                renderFavs();
+            }
+
+            function exportMarkdown() {
+                const groups = favoriteState.groups.filter(function(group) {
+                    return group.items.length > 0;
+                });
+
+                if (!groups.length) {
+                    alert('暂无可导出的已存偏好');
+                    return;
+                }
+
+                const lines = ['# XP 偏好导出', ''];
+                groups.forEach(function(group, groupIndex) {
+                    lines.push('## ' + group.name, '');
+                    group.items.forEach(function(item) {
+                        lines.push('### ' + item.name, '', item.desc, '');
+                    });
+                    if (groupIndex !== groups.length - 1) {
+                        lines.push('');
+                    }
+                });
+
+                const markdown = lines.join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n';
+                const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const anchor = document.createElement('a');
+                anchor.href = url;
+                anchor.download = 'xp-preferences.md';
+                anchor.click();
+                setTimeout(function() {
+                    URL.revokeObjectURL(url);
+                }, 1000);
+            }
+
+            let favoriteState = loadFavoriteState();
             renderFavs();
-            saveFavorites();
+            saveFavoriteState();
 
             window.addEventListener('storage', function (event) {
                 if (event.key !== FAVORITES_STORAGE_KEY) return;
-                favorites = loadFavorites();
+                favoriteState = loadFavoriteState();
                 renderFavs();
             });
 
@@ -8096,16 +8508,6 @@
             }
 
             // --- 收藏核心 ---
-            function renderFavs() {
-                const list = document.getElementById('fav-list');
-                list.innerHTML = favorites.map(f => `
-                    <div class="fav-item" onclick="locate('${f.id}', '${f.name}', '${f.desc.replace(/'/g, "\'")}')">
-                        <span><b>${f.id}</b> ${f.name}</span>
-                        <span onclick="event.stopPropagation(); removeFav('${f.id}')" style="color:#ff3b30; font-size:1.2rem; padding:0 5px;">×</span>
-                    </div>
-                `).join('');
-            }
-
             function locate(id, name, desc) {
                 const btn = document.getElementById('btn-' + id);
                 if(btn) {
@@ -8120,30 +8522,59 @@
             }
 
             function showModal(id, name, desc) {
+                activeModalItem = { id: id, name: name, desc: desc };
                 document.getElementById('m-title').innerText = id + ". " + name;
                 document.getElementById('m-desc').innerText = desc;
+                const currentGroup = findGroupForItem(id);
+                renderGroupSelect(currentGroup ? currentGroup.id : favoriteState.lastGroupId, id);
+                const newGroupInput = document.getElementById('new-group-input');
+                if (newGroupInput) {
+                    newGroupInput.value = '';
+                }
+                const confirmBtn = document.getElementById('confirm-btn');
+                if (confirmBtn) {
+                    confirmBtn.innerText = currentGroup ? '更新分组' : '保存到分组';
+                    confirmBtn.onclick = saveCurrentPreference;
+                }
                 document.getElementById('overlay').style.display = 'flex';
-                document.getElementById('confirm-btn').onclick = () => {
-                    if(!favorites.some(f => f.id === id)) {
-                        favorites.push({id, name, desc});
-                        renderFavs();
-                        saveFavorites();
-                    }
-                    closeModal();
-                };
             }
 
-            function closeModal() { document.getElementById('overlay').style.display = 'none'; }
+            function saveCurrentPreference() {
+                if (!activeModalItem) return;
+
+                const select = document.getElementById('group-select');
+                const newGroupInput = document.getElementById('new-group-input');
+                const targetGroupId = select ? select.value : '';
+                const newGroupName = newGroupInput ? newGroupInput.value : '';
+                savePreferenceToGroup(activeModalItem, targetGroupId, newGroupName);
+                if (newGroupInput) {
+                    newGroupInput.value = '';
+                }
+                closeModal();
+            }
+
+            function closeModal() {
+                document.getElementById('overlay').style.display = 'none';
+                activeModalItem = null;
+            }
             function removeFav(id) {
-                favorites = favorites.filter(f => f.id !== id);
+                favoriteState.groups.forEach(function(group) {
+                    group.items = group.items.filter(function(item) {
+                        return item.id !== id;
+                    });
+                });
                 renderFavs();
-                saveFavorites();
+                saveFavoriteState();
             }
             function clearAll() {
                 if (confirm('确定清空收藏？')) {
-                    favorites = [];
+                    favoriteState = {
+                        groups: [],
+                        lastGroupId: ''
+                    };
+                    activeModalItem = null;
                     renderFavs();
-                    saveFavorites();
+                    saveFavoriteState();
                 }
             }
         </script>
