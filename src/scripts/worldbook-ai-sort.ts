@@ -479,9 +479,16 @@ function applySuggestions(refs: ModalStateRefs, options: WorldbookAISortOptions)
     if (!entry) return;
 
     if (suggestion.suggestedStrategy) {
-      entry.strategy = isVanilla && suggestion.suggestedStrategy === 'vectorized'
-        ? 'selective'
-        : suggestion.suggestedStrategy;
+      if (isVanilla) {
+        // 香草模式下 selective 不强制覆盖，避免把 selective/constant 从 false 改成 true。
+        if (suggestion.suggestedStrategy === 'constant') {
+          entry.strategy = 'constant';
+        } else if (suggestion.suggestedStrategy === 'vectorized') {
+          entry.strategy = 'selective';
+        }
+      } else {
+        entry.strategy = suggestion.suggestedStrategy;
+      }
     }
     if (suggestion.suggestedPosition !== undefined) {
       entry.position = clamp(suggestion.suggestedPosition, 0, 6);

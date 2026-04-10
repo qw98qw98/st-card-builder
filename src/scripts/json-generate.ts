@@ -49,7 +49,12 @@ export function buildExportWorldbookEntries(
     const comment = String(e.comment || '');
     const content = String(e.content || '');
     const isConstant = e.strategy === 'constant';
-    const isSelective = isConstant ? false : (keys.length > 0 || e.strategy === 'selective' || e.strategy === 'vectorized' || !!e.vectorized);
+    const hasSecondaryKeys = secondaryKeys.length > 0;
+    const isSelective = isConstant
+      ? false
+      : (format === 'vanilla'
+        ? hasSecondaryKeys
+        : (keys.length > 0 || e.strategy === 'selective' || e.strategy === 'vectorized' || !!e.vectorized));
     const enabled = e.disable !== true && e.enabled !== false;
     return {
       keys: keys,
@@ -97,7 +102,8 @@ export function buildVanillaWorldbookEntryCopy(
   const comment = String(e.comment || '');
   const content = String(e.content || '');
   const isConstant = e.strategy === 'constant';
-  const isSelective = isConstant ? false : (keys.length > 0 || e.strategy === 'selective' || e.strategy === 'vectorized' || !!e.vectorized);
+  const hasSecondaryKeys = secondaryKeys.length > 0;
+  const isSelective = isConstant ? false : hasSecondaryKeys;
   const enabled = e.disable !== true && e.enabled !== false;
 
   return {
