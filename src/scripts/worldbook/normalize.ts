@@ -1,5 +1,6 @@
 import type { WorldbookEntry } from '../../types/worldbook';
 import { safeInt } from '../utils/safe-int';
+import { normalizeWorldbookPosition } from './position';
 
 /**
  * 将原始世界书条目数据标准化为统一的 WorldbookEntry 结构。
@@ -21,7 +22,7 @@ export function normalizeWorldbookEntry(
         ? (entry.secondary_keys as string[]).slice()
         : [],
     strategy: (entry.strategy as WorldbookEntry['strategy']) || 'selective',
-    position: safeInt(entry.position, 4),
+    position: normalizeWorldbookPosition(entry.position, 4),
     depth: safeInt(entry.depth, 4),
     role: safeInt(entry.role, 0) as WorldbookEntry['role'],
     order: safeInt(entry.order !== undefined ? entry.order : entry.insertion_order, 100),

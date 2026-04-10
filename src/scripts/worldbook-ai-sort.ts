@@ -43,7 +43,7 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 function normalizeArrayText(value: unknown): string {
-  if (Array.isArray(value)) return value.map(function(item) { return String(item || '').trim(); }).filter(Boolean).join('，');
+  if (Array.isArray(value)) return value.map(function (item) { return String(item || '').trim(); }).filter(Boolean).join('，');
   return String(value || '').trim();
 }
 
@@ -70,7 +70,7 @@ function summarizeEntry(entry: WorldbookEntry, index: number): Record<string, un
 }
 
 export function buildWorldbookSortPrompt(entries: WorldbookEntry[], worldbookName?: string): string {
-  const list = (Array.isArray(entries) ? entries : []).map(function(entry, index) {
+  const list = (Array.isArray(entries) ? entries : []).map(function (entry, index) {
     return summarizeEntry(entry, index);
   });
 
@@ -204,8 +204,8 @@ export function parseWorldbookSortSuggestions(text: string): WorldbookSortSugges
   }
 
   return rawList
-    .map(function(item) { return normalizeSuggestion(item); })
-    .filter(function(item): item is WorldbookSortSuggestion { return !!item; });
+    .map(function (item) { return normalizeSuggestion(item); })
+    .filter(function (item): item is WorldbookSortSuggestion { return !!item; });
 }
 
 function setModalSection(refs: ModalStateRefs, state: 'config' | 'loading' | 'empty' | 'results' | 'error'): void {
@@ -242,7 +242,7 @@ function updateConfigState(refs: ModalStateRefs): void {
 function renderSuggestionList(refs: ModalStateRefs, entries: WorldbookEntry[]): void {
   refs.listEl.innerHTML = '';
 
-  const visibleCount = currentSuggestions.filter(function(suggestion) {
+  const visibleCount = currentSuggestions.filter(function (suggestion) {
     return !!entries[suggestion.index];
   }).length;
 
@@ -254,7 +254,7 @@ function renderSuggestionList(refs: ModalStateRefs, entries: WorldbookEntry[]): 
 
   refs.countEl.textContent = String(visibleCount) + ' 条建议';
 
-  currentSuggestions.forEach(function(suggestion, suggestionIndex) {
+  currentSuggestions.forEach(function (suggestion, suggestionIndex) {
     const entry = entries[suggestion.index];
     if (!entry) return;
 
@@ -326,9 +326,9 @@ function renderSuggestionList(refs: ModalStateRefs, entries: WorldbookEntry[]): 
   setModalSection(refs, 'results');
 
   if (refs.selectAll) {
-    refs.selectAll.onchange = function() {
+    refs.selectAll.onchange = function () {
       const checked = refs.selectAll!.checked;
-      refs.listEl.querySelectorAll<HTMLInputElement>('input[type="checkbox"]').forEach(function(cb) {
+      refs.listEl.querySelectorAll<HTMLInputElement>('input[type="checkbox"]').forEach(function (cb) {
         cb.checked = checked;
       });
     };
@@ -387,7 +387,7 @@ function applySuggestions(refs: ModalStateRefs, options: WorldbookAISortOptions)
   const checked = Array.prototype.slice.call(refs.listEl.querySelectorAll('input[type="checkbox"]:checked')) as HTMLInputElement[];
   let applied = 0;
 
-  checked.forEach(function(cb) {
+  checked.forEach(function (cb) {
     const suggestionIndex = safeInt(cb.getAttribute('data-suggestion-index'), -1);
     const suggestion = currentSuggestions[suggestionIndex];
     if (!suggestion) return;
@@ -504,7 +504,7 @@ export function initWorldbookAISort(options: WorldbookAISortOptions): void {
 
   function bindJumpSettings(): void {
     if (!refs.jumpSettingsBtn) return;
-    refs.jumpSettingsBtn.onclick = function() {
+    refs.jumpSettingsBtn.onclick = function () {
       if (options.openSettings) {
         options.openSettings();
       }
@@ -515,12 +515,12 @@ export function initWorldbookAISort(options: WorldbookAISortOptions): void {
   (document.getElementById('btnOpenWorldbookAISort') as HTMLButtonElement | null)?.addEventListener('click', openModal);
   refs.cancelBtn.addEventListener('click', closeModal);
   refs.closeBtn && refs.closeBtn.addEventListener('click', closeModal);
-  refs.modal.addEventListener('click', function(event) {
+  refs.modal.addEventListener('click', function (event) {
     if (event.target === refs.modal) {
       closeModal();
     }
   });
-  document.addEventListener('keydown', function(event) {
+  document.addEventListener('keydown', function (event) {
     if (refs.modal.hidden) return;
     if (event.key === 'Escape') {
       closeModal();
@@ -529,9 +529,9 @@ export function initWorldbookAISort(options: WorldbookAISortOptions): void {
 
   bindJumpSettings();
 
-  refs.analyzeBtn.addEventListener('click', function() {
+  refs.analyzeBtn.addEventListener('click', function () {
     refs.analyzeBtn.disabled = true;
-    runAnalysis(refs, options).finally(function() {
+    runAnalysis(refs, options).finally(function () {
       refs.analyzeBtn.disabled = false;
       if (!refs.resultsState.hidden) {
         refs.applyBtn.hidden = false;
@@ -539,11 +539,11 @@ export function initWorldbookAISort(options: WorldbookAISortOptions): void {
     });
   });
 
-  refs.applyBtn.addEventListener('click', function() {
+  refs.applyBtn.addEventListener('click', function () {
     const applied = applySuggestions(refs, options);
     if (!applied) return;
     closeModal();
-    setTimeout(function() {
+    setTimeout(function () {
       alert('已应用 ' + String(applied) + ' 条 AI 排序建议');
     }, 0);
   });

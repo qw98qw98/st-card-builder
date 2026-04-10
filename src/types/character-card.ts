@@ -1,5 +1,8 @@
 import type { CharacterBook, WorldbookEntry } from './worldbook';
 
+/** 香草导出支持的位置值 */
+export type VanillaWorldbookPosition = 'before_char' | 'after_char';
+
 /** SillyTavern V3 角色卡 */
 export interface SillyTavernCard {
   spec: 'chara_card_v3';
@@ -143,5 +146,6 @@ export interface ExportedWorldbookEntry {
   id: number;
   selective: boolean;
   constant: boolean;
-  position: number;
+  /** ST 导出保留数字；香草导出会写入 before_char / after_char */
+  position: number | VanillaWorldbookPosition;
 }

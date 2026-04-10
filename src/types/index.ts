@@ -18,6 +18,7 @@ export type {
   ImportedCardMeta,
   ImportedWorldbookMeta,
   VanillaCharacterCard,
+  VanillaWorldbookPosition,
   ExportedCharacterBook,
   ExportedWorldbookEntry,
 } from './character-card';

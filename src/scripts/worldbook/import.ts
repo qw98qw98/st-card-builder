@@ -2,6 +2,7 @@ import type { WorldbookEntry } from '../../types/worldbook';
 import type { ImportedWorldbookMeta } from '../../types/character-card';
 import { safeInt } from '../utils/safe-int';
 import { normalizeWorldbookEntry } from './normalize';
+import { normalizeWorldbookPosition } from './position';
 
 // ============================================================
 //  世界书导入工具函数
@@ -269,7 +270,7 @@ export function getImportedWorldbookEntries(
       keys: keys,
       secondaryKeys: secondaryKeys,
       strategy: strategy,
-      position: safeInt(ext.position !== undefined ? ext.position : entry && entry.position, 4),
+      position: normalizeWorldbookPosition(ext.position !== undefined ? ext.position : entry && entry.position, 4),
       depth: safeInt(ext.depth !== undefined ? ext.depth : entry && entry.depth, 4),
       role: safeInt(ext.role !== undefined ? ext.role : entry && entry.role, 0),
       order: safeInt(entry && (entry.insertion_order !== undefined ? entry.insertion_order : entry.order), 100),

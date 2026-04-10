@@ -976,7 +976,10 @@ window.__setImportedAvatar__ = function(src, skipCommit, exportBase64) {
       btnExportPNG.addEventListener('click', function() {
         if (!currentAvatarExportBase64) return alert("❌ 请先上传头像（需要可导出的 PNG/base64 头像）！");
         try {
-          var ch  = createTextChunk('chara', JSON.stringify(generateSillyTavernJSON(buildExportContext())));
+          var exportedCard = window.__cardFormat__ === 'vanilla'
+            ? generateVanillaCharacterJSON(buildExportContext())
+            : generateSillyTavernJSON(buildExportContext());
+          var ch  = createTextChunk('chara', JSON.stringify(exportedCard));
           var raw = atob(currentAvatarExportBase64.split(',')[1]);
           var bytes = new Uint8Array(raw.length);
           for (var i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);

@@ -1,5 +1,6 @@
 import { safeInt } from './utils/safe-int';
 import { normalizeWorldbookEntry } from './worldbook/normalize';
+import { normalizeWorldbookPosition } from './worldbook/position';
 
 // ============================================================
 //  角色卡标准化 — 纯函数，无 DOM 依赖
@@ -77,11 +78,9 @@ export function isPureWorldbookPayload(json: Record<string, unknown> | null | un
 function coerceImportedPosition(entry: Record<string, unknown> | null | undefined): number {
   if (!entry || typeof entry !== 'object') return 4;
   const ext = entry.extensions as Record<string, unknown> | undefined;
-  if (ext && ext.position !== undefined) return safeInt(ext.position, 4);
+  if (ext && ext.position !== undefined) return normalizeWorldbookPosition(ext.position, 4);
   if (entry.position !== undefined) {
-    if (entry.position === 'before_char') return 0;
-    if (entry.position === 'after_char') return 4;
-    return safeInt(entry.position, 4);
+    return normalizeWorldbookPosition(entry.position, 4);
   }
   return 4;
 }

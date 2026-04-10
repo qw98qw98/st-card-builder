@@ -6,8 +6,10 @@ import type {
   ExportedWorldbookEntry,
   ImportedCardMeta,
   ImportedWorldbookMeta,
+  VanillaWorldbookPosition,
 } from '../types/character-card';
 import { safeInt } from './utils/safe-int';
+import { toVanillaWorldbookPosition } from './worldbook/position';
 
 // ============================================================
 //  JSON 导出生成
@@ -26,9 +28,20 @@ export interface ExportContext {
   importedWorldbookMeta: ImportedWorldbookMeta | null;
 }
 
+type ExportWorldbookFormat = 'sillytavern' | 'vanilla';
+
+function mapExportWorldbookPosition(
+  value: unknown,
+  format: ExportWorldbookFormat
+): number | VanillaWorldbookPosition {
+  if (format === 'vanilla') return toVanillaWorldbookPosition(value);
+  return safeInt(value, 4);
+}
+
 /** 将 WorldbookEntry[] 转为导出用的 entries 数组 */
 export function buildExportWorldbookEntries(
-  worldbookEntries: WorldbookEntry[]
+  worldbookEntries: WorldbookEntry[],
+  format: ExportWorldbookFormat = 'sillytavern'
 ): ExportedWorldbookEntry[] {
   return worldbookEntries.map(function (e, i) {
     const keys = Array.isArray(e.keys) ? e.keys.slice() : [];
@@ -52,7 +65,7 @@ export function buildExportWorldbookEntries(
       id: i,
       selective: isSelective,
       constant: isConstant,
-      position: safeInt(e.position, 4),
+      position: mapExportWorldbookPosition(e.position, format),
     };
   });
 }
@@ -72,7 +85,7 @@ export interface VanillaWorldbookEntryCopy {
   priority: number;
   selective: boolean;
   constant: boolean;
-  position: number;
+  position: VanillaWorldbookPosition;
 }
 
 export function buildVanillaWorldbookEntryCopy(
@@ -98,7 +111,7 @@ export function buildVanillaWorldbookEntryCopy(
     priority: safeInt(e.prob, 100),
     selective: isSelective,
     constant: isConstant,
-    position: safeInt(e.position, 4),
+    position: toVanillaWorldbookPosition(e.position),
   };
 }
 
@@ -122,7 +135,10 @@ function mergeMeta(
 }
 
 /** 构建导出用的 character_book 对象 */
-export function buildExportCharacterBook(ctx: ExportContext): ExportedCharacterBook {
+export function buildExportCharacterBook(
+  ctx: ExportContext,
+  format: ExportWorldbookFormat = 'sillytavern'
+): ExportedCharacterBook {
   const meta = mergeMeta(ctx.importedCardMeta, ctx.importedWorldbookMeta);
   return {
     name: ctx.wbName || '',
@@ -131,7 +147,7 @@ export function buildExportCharacterBook(ctx: ExportContext): ExportedCharacterB
     token_budget: meta.characterBookTokenBudget !== undefined ? (meta.characterBookTokenBudget as number) : (meta.worldbookTokenBudget !== undefined ? (meta.worldbookTokenBudget as number) : 1800000000),
     recursive_scanning: meta.characterBookRecursiveScanning !== undefined ? !!meta.characterBookRecursiveScanning : (meta.worldbookRecursiveScanning !== undefined ? !!meta.worldbookRecursiveScanning : true),
     extensions: {},
-    entries: buildExportWorldbookEntries(ctx.worldbookEntries),
+    entries: buildExportWorldbookEntries(ctx.worldbookEntries, format),
   };
 }
 
@@ -180,7 +196,7 @@ export function generateVanillaCharacterJSON(ctx: ExportContext): VanillaCharact
     mes_example: (meta.mesExample as string) || '',
     creator_notes: ctx.creatorNotes || '',
     alternate_greetings: altG,
-    character_book: buildExportCharacterBook(ctx),
+    character_book: buildExportCharacterBook(ctx, 'vanilla'),
     tags: Array.isArray(meta.tags) ? (meta.tags as string[]).slice() : [],
     creator: (meta.creator as string) || '',
     character_version: (meta.characterVersion as string) || '1.0.0',
