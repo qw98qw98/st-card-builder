@@ -1,0 +1,359 @@
+---
+---
+<div id="aiSettingsPanel" class="panel area-ai-settings ai-settings-panel">
+  <div class="ai-head">
+    <div>
+      <h2>🧠 AI 接入</h2>
+      <p class="ai-desc">仅用于世界书排序建议。设置保存在本地浏览器，不会上传到服务器。</p>
+    </div>
+    <span id="aiSettingsStatus" class="ai-pill">未配置</span>
+  </div>
+
+  <div class="ai-grid">
+    <section class="ai-card">
+      <div class="ai-card-head">
+        <div>
+          <h3>服务商</h3>
+          <p class="ai-card-desc">OpenAI 兼容可接 DeepSeek / OpenRouter / 代理站，Gemini 使用原生接口，Ollama 连接本地模型。</p>
+        </div>
+      </div>
+      <div class="form-group ai-field">
+        <label for="aiProvider">AI 提供商</label>
+        <select id="aiProvider">
+          <option value="openai-compatible">OpenAI 兼容 / DeepSeek</option>
+          <option value="gemini">Gemini</option>
+          <option value="ollama">Ollama</option>
+        </select>
+      </div>
+      <p id="aiSettingsHint" class="ai-card-tip">选择提供商后会显示对应配置项。</p>
+    </section>
+
+    <section class="ai-card" data-ai-provider-panel="openai-compatible">
+      <div class="ai-card-head">
+        <div>
+          <h3>OpenAI 兼容</h3>
+          <p class="ai-card-desc">适合 DeepSeek、OpenRouter、兼容 OpenAI 的代理服务。</p>
+        </div>
+      </div>
+      <div class="ai-field-stack">
+        <div class="form-group ai-field">
+          <label for="aiOpenAIEndpoint">API Base URL</label>
+          <input type="text" id="aiOpenAIEndpoint" placeholder="https://api.deepseek.com/v1" />
+        </div>
+        <div class="form-group ai-field">
+          <label for="aiOpenAIApiKey">API Key</label>
+          <input type="password" id="aiOpenAIApiKey" placeholder="输入你的 API Key" />
+        </div>
+        <div class="form-group ai-field">
+          <label for="aiOpenAIModel">模型名称</label>
+          <input type="text" id="aiOpenAIModel" placeholder="deepseek-chat" />
+        </div>
+      </div>
+    </section>
+
+    <section class="ai-card" data-ai-provider-panel="gemini">
+      <div class="ai-card-head">
+        <div>
+          <h3>Gemini</h3>
+          <p class="ai-card-desc">使用 Google Gemini 的原生接口。</p>
+        </div>
+      </div>
+      <div class="ai-field-stack">
+        <div class="form-group ai-field">
+          <label for="aiGeminiApiKey">API Key</label>
+          <input type="password" id="aiGeminiApiKey" placeholder="输入你的 Gemini API Key" />
+        </div>
+        <div class="form-group ai-field">
+          <label for="aiGeminiModel">模型名称</label>
+          <input type="text" id="aiGeminiModel" placeholder="gemini-2.5-flash" />
+        </div>
+      </div>
+    </section>
+
+    <section class="ai-card" data-ai-provider-panel="ollama">
+      <div class="ai-card-head">
+        <div>
+          <h3>Ollama</h3>
+          <p class="ai-card-desc">连接本地运行的 Ollama 服务。</p>
+        </div>
+      </div>
+      <div class="ai-field-stack">
+        <div class="form-group ai-field">
+          <label for="aiOllamaEndpoint">服务地址</label>
+          <input type="text" id="aiOllamaEndpoint" placeholder="http://localhost:11434" />
+        </div>
+        <div class="form-group ai-field">
+          <label for="aiOllamaModel">模型名称</label>
+          <input type="text" id="aiOllamaModel" placeholder="llama3.1" />
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="ai-actions">
+    <button id="aiSaveSettings" class="btn btn-fetch ai-save-btn" type="button">保存设置</button>
+    <button id="aiResetSettings" class="btn btn-add ai-reset-btn" type="button">恢复默认</button>
+  </div>
+</div>
+
+<style is:global>
+  .ai-settings-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    background:
+      radial-gradient(circle at top right, rgba(56, 189, 248, 0.10), transparent 28%),
+      radial-gradient(circle at bottom left, rgba(139, 92, 246, 0.12), transparent 30%),
+      linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0.88));
+    border: 1px solid rgba(96, 165, 250, 0.16);
+  }
+
+  .ai-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .ai-head h2 {
+    margin: 0;
+  }
+
+  .ai-desc {
+    margin: 6px 0 0;
+    font-size: 0.78rem;
+    color: #94a3b8;
+    line-height: 1.5;
+  }
+
+  .ai-pill {
+    flex-shrink: 0;
+    font-size: 0.68rem;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(56, 189, 248, 0.08);
+    border: 1px solid rgba(56, 189, 248, 0.18);
+    color: #7dd3fc;
+    margin-top: 4px;
+    font-weight: 700;
+  }
+
+  .ai-pill.is-ready {
+    color: #86efac;
+    border-color: rgba(34, 197, 94, 0.18);
+    background: rgba(34, 197, 94, 0.08);
+  }
+
+  .ai-pill.is-warning {
+    color: #fbbf24;
+    border-color: rgba(245, 158, 11, 0.18);
+    background: rgba(245, 158, 11, 0.08);
+  }
+
+  .ai-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .ai-card {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px;
+    border-radius: 14px;
+    border: 1px solid rgba(71, 85, 105, 0.4);
+    background: rgba(2, 6, 23, 0.45);
+  }
+
+  .ai-card[data-ai-provider-panel] {
+    display: none;
+  }
+
+  .ai-card.is-active {
+    display: flex;
+  }
+
+  .ai-card-head h3 {
+    margin: 0;
+    font-size: 0.96rem;
+  }
+
+  .ai-card-desc {
+    margin: 4px 0 0;
+    font-size: 0.73rem;
+    color: #94a3b8;
+    line-height: 1.45;
+  }
+
+  .ai-card-tip {
+    margin: -2px 0 0;
+    font-size: 0.72rem;
+    color: #64748b;
+    line-height: 1.5;
+  }
+
+  .ai-field-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .ai-field {
+    margin-bottom: 0;
+  }
+
+  .ai-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .ai-save-btn,
+  .ai-reset-btn {
+    width: auto !important;
+    min-width: 132px;
+  }
+
+  @media (max-width: 900px) {
+    .ai-actions {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .ai-save-btn,
+    .ai-reset-btn {
+      width: 100% !important;
+    }
+  }
+</style>
+
+<script>
+  import {
+    buildAISettingsSummary,
+    loadAISettings,
+    resetAISettings,
+    saveAISettings,
+    validateAISettings,
+  } from '../scripts/ai-settings';
+
+  import type { AIProvider, AISettings } from '../types/ai';
+
+  const panel = document.getElementById('aiSettingsPanel');
+  const providerSelect = document.getElementById('aiProvider') as HTMLSelectElement | null;
+  const openAIEndpoint = document.getElementById('aiOpenAIEndpoint') as HTMLInputElement | null;
+  const openAIApiKey = document.getElementById('aiOpenAIApiKey') as HTMLInputElement | null;
+  const openAIModel = document.getElementById('aiOpenAIModel') as HTMLInputElement | null;
+  const geminiApiKey = document.getElementById('aiGeminiApiKey') as HTMLInputElement | null;
+  const geminiModel = document.getElementById('aiGeminiModel') as HTMLInputElement | null;
+  const ollamaEndpoint = document.getElementById('aiOllamaEndpoint') as HTMLInputElement | null;
+  const ollamaModel = document.getElementById('aiOllamaModel') as HTMLInputElement | null;
+  const statusEl = document.getElementById('aiSettingsStatus') as HTMLSpanElement | null;
+  const hintEl = document.getElementById('aiSettingsHint') as HTMLParagraphElement | null;
+  const saveBtn = document.getElementById('aiSaveSettings') as HTMLButtonElement | null;
+  const resetBtn = document.getElementById('aiResetSettings') as HTMLButtonElement | null;
+  const providerCards = Array.prototype.slice.call(document.querySelectorAll('[data-ai-provider-panel]')) as HTMLElement[];
+
+  if (!panel || !providerSelect || !openAIEndpoint || !openAIApiKey || !openAIModel || !geminiApiKey || !geminiModel || !ollamaEndpoint || !ollamaModel || !statusEl || !hintEl || !saveBtn || !resetBtn) {
+    console.warn('AI settings panel initialization skipped because required elements were not found.');
+  } else {
+    function getFormSettings(): AISettings {
+      return {
+        provider: providerSelect.value as AIProvider,
+        openaiCompatible: {
+          endpoint: openAIEndpoint.value.trim(),
+          apiKey: openAIApiKey.value.trim(),
+          model: openAIModel.value.trim(),
+        },
+        gemini: {
+          apiKey: geminiApiKey.value.trim(),
+          model: geminiModel.value.trim(),
+        },
+        ollama: {
+          endpoint: ollamaEndpoint.value.trim(),
+          model: ollamaModel.value.trim(),
+        },
+      };
+    }
+
+    function setHint(text: string): void {
+      hintEl.textContent = text;
+    }
+
+    function refreshProviderPanels(): void {
+      const active = providerSelect.value;
+      providerCards.forEach(function(card) {
+        card.classList.toggle('is-active', card.getAttribute('data-ai-provider-panel') === active);
+      });
+      if (active === 'gemini') {
+        setHint('Gemini 需要 API Key。');
+      } else if (active === 'ollama') {
+        setHint('Ollama 适合本地模型，通常不需要 API Key。');
+      } else {
+        setHint('OpenAI 兼容可接 DeepSeek / OpenRouter / 代理站。');
+      }
+    }
+
+    function refreshStatus(settings?: AISettings): void {
+      const current = settings || getFormSettings();
+      const issue = validateAISettings(current);
+      if (issue) {
+        statusEl.textContent = '未就绪';
+        statusEl.className = 'ai-pill is-warning';
+        setHint(issue);
+        return;
+      }
+
+      statusEl.textContent = '已就绪';
+      statusEl.className = 'ai-pill is-ready';
+      setHint(buildAISettingsSummary(current));
+    }
+
+    function populate(settings: AISettings): void {
+      providerSelect.value = settings.provider;
+      openAIEndpoint.value = settings.openaiCompatible.endpoint;
+      openAIApiKey.value = settings.openaiCompatible.apiKey;
+      openAIModel.value = settings.openaiCompatible.model;
+      geminiApiKey.value = settings.gemini.apiKey;
+      geminiModel.value = settings.gemini.model;
+      ollamaEndpoint.value = settings.ollama.endpoint;
+      ollamaModel.value = settings.ollama.model;
+      refreshProviderPanels();
+      refreshStatus(settings);
+    }
+
+    function saveCurrentSettings(): void {
+      const normalized = saveAISettings(getFormSettings());
+      populate(normalized);
+      window.dispatchEvent(new CustomEvent('ai-settings-changed', { detail: normalized }));
+    }
+
+    providerSelect.addEventListener('change', function() {
+      refreshProviderPanels();
+      refreshStatus();
+    });
+
+    [openAIEndpoint, openAIApiKey, openAIModel, geminiApiKey, geminiModel, ollamaEndpoint, ollamaModel].forEach(function(input) {
+      if (!input) return;
+      input.addEventListener('input', function() {
+        refreshStatus();
+      });
+    });
+
+    saveBtn.addEventListener('click', function() {
+      saveCurrentSettings();
+      alert('AI 设置已保存');
+    });
+
+    resetBtn.addEventListener('click', function() {
+      const normalized = saveAISettings(resetAISettings());
+      populate(normalized);
+      window.dispatchEvent(new CustomEvent('ai-settings-changed', { detail: normalized }));
+      alert('已恢复默认 AI 设置');
+    });
+
+    populate(loadAISettings());
+  }
+</script>

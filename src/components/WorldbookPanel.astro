@@ -10,6 +10,9 @@
         <span id="wbManualCount" class="wb-pill wb-pill-manual">手动 0</span>
         <span id="wbImportCount" class="wb-pill wb-pill-import">导入 0</span>
       </div>
+      <div class="wb-head-actions">
+        <button id="btnOpenWorldbookAISort" class="btn btn-fetch wb-ai-sort-btn" type="button">🤖 AI 排序建议</button>
+      </div>
     </div>
     <p class="wb-head-desc">编辑模式用于快速修改，预览模式用于上方看详情、下方看全量词条索引。生成、手动编辑、导入条目分开看，长设定可直接阅读和复制。</p>
   </div>
@@ -221,6 +224,59 @@
   </div>
 </div>
 
+<div id="wbAiSortModal" class="wb-ai-sort-modal" hidden aria-hidden="true">
+  <div class="wb-ai-sort-dialog" role="dialog" aria-modal="true" aria-labelledby="wbAiSortTitle">
+    <div class="wb-ai-sort-head">
+      <div>
+        <h3 id="wbAiSortTitle">🤖 AI 排序建议</h3>
+        <p class="wb-card-desc">让 AI 根据世界书内容给出 position、order、depth、prob 和 strategy 的排序建议，只改真正需要调整的条目。</p>
+      </div>
+      <button id="wbAiSortClose" class="wb-ai-sort-close" type="button" aria-label="关闭">×</button>
+    </div>
+
+    <div id="wbAiSortConfig" class="wb-ai-sort-state">
+      <div class="wb-ai-sort-state-copy">
+        <span id="wbAiSortStatus" class="wb-ai-status">未配置</span>
+        <p id="wbAiSortConfigMessage" class="wb-ai-sort-message">先完成 AI 接入，再来生成排序建议。</p>
+      </div>
+      <button id="wbAiSortJumpSettings" class="btn wb-ai-sort-jump" type="button">前往 AI 设置</button>
+    </div>
+
+    <div id="wbAiSortLoading" class="wb-ai-sort-state" hidden>
+      <p class="wb-ai-sort-state-title">正在分析世界书条目…</p>
+      <p class="wb-ai-sort-message">会把条目标题、关键词、内容摘要一起交给 AI，让它判断哪些条目更核心。</p>
+    </div>
+
+    <div id="wbAiSortEmpty" class="wb-ai-sort-state" hidden>
+      <div class="wb-ai-empty-copy">
+        <h4>没有可用建议</h4>
+        <p>AI 可能认为当前条目已经足够合理，或者返回结果无法解析。你可以修改提示词后重新分析。</p>
+      </div>
+    </div>
+
+    <div id="wbAiSortError" class="wb-ai-sort-state" hidden>
+      <p id="wbAiSortErrorMessage" class="wb-ai-sort-message wb-ai-sort-error-message"></p>
+    </div>
+
+    <div id="wbAiSortResults" class="wb-ai-sort-results" hidden>
+      <div class="wb-ai-sort-toolbar">
+        <label class="wb-ai-sort-select-all">
+          <input id="wbAiSortSelectAll" type="checkbox" checked />
+          <span>全选 / 取消全选</span>
+        </label>
+        <span id="wbAiSortCount" class="wb-pill">0 条建议</span>
+      </div>
+      <div id="wbAiSortList" class="wb-ai-sort-list"></div>
+    </div>
+
+    <div class="wb-ai-sort-actions">
+      <button id="wbAiSortAnalyze" class="btn wb-ai-sort-primary" type="button">开始分析</button>
+      <button id="wbAiSortApply" class="btn wb-ai-sort-primary" type="button" hidden>应用选中建议</button>
+      <button id="wbAiSortCancel" class="btn wb-ai-sort-cancel" type="button">关闭</button>
+    </div>
+  </div>
+</div>
+
 <style is:global>
   .wb-panel {
     display: flex;
@@ -257,6 +313,22 @@
     flex-wrap: wrap;
     gap: 8px;
     align-items: center;
+  }
+
+  .wb-head-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    flex: 1 0 100%;
+    margin-top: -2px;
+  }
+
+  .wb-ai-sort-btn {
+    width: auto !important;
+    padding: 8px 14px !important;
+    border-radius: 999px !important;
+    font-size: 0.76rem !important;
+    font-weight: 700 !important;
   }
 
   .wb-mode-switch {
@@ -948,6 +1020,313 @@
     font-size: 0.74rem;
   }
 
+  .wb-ai-sort-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+    background: rgba(2, 6, 23, 0.74);
+    backdrop-filter: blur(14px);
+  }
+
+  .wb-ai-sort-dialog {
+    width: min(1080px, 100%);
+    max-height: min(88vh, 980px);
+    overflow: auto;
+    padding: 18px;
+    border-radius: 20px;
+    border: 1px solid rgba(96, 165, 250, 0.18);
+    background:
+      radial-gradient(circle at top right, rgba(56, 189, 248, 0.08), transparent 24%),
+      radial-gradient(circle at bottom left, rgba(139, 92, 246, 0.12), transparent 26%),
+      linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(15, 23, 42, 0.94));
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+  }
+
+  .wb-ai-sort-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    align-items: flex-start;
+    margin-bottom: 14px;
+  }
+
+  .wb-ai-sort-head h3 {
+    margin: 0;
+  }
+
+  .wb-ai-sort-close {
+    width: 36px !important;
+    height: 36px;
+    border-radius: 999px !important;
+    border: 1px solid rgba(71, 85, 105, 0.7) !important;
+    background: rgba(15, 23, 42, 0.9) !important;
+    color: #e2e8f0 !important;
+    font-size: 1.2rem !important;
+    line-height: 1 !important;
+  }
+
+  .wb-ai-sort-state,
+  .wb-ai-sort-results {
+    border: 1px solid rgba(71, 85, 105, 0.45);
+    border-radius: 16px;
+    background: rgba(2, 6, 23, 0.42);
+    padding: 14px;
+    margin-bottom: 12px;
+  }
+
+  .wb-ai-sort-state {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .wb-ai-sort-state-title {
+    margin: 0 0 6px;
+    font-size: 0.92rem;
+    color: #e2e8f0;
+    font-weight: 700;
+  }
+
+  .wb-ai-sort-message {
+    margin: 6px 0 0;
+    font-size: 0.74rem;
+    color: #94a3b8;
+    line-height: 1.5;
+  }
+
+  .wb-ai-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(56, 189, 248, 0.18);
+    background: rgba(56, 189, 248, 0.08);
+    color: #7dd3fc;
+    font-size: 0.68rem;
+    font-weight: 700;
+  }
+
+  .wb-ai-status.is-ready {
+    color: #86efac;
+    border-color: rgba(34, 197, 94, 0.18);
+    background: rgba(34, 197, 94, 0.08);
+  }
+
+  .wb-ai-status.is-warning {
+    color: #fbbf24;
+    border-color: rgba(245, 158, 11, 0.18);
+    background: rgba(245, 158, 11, 0.08);
+  }
+
+  .wb-ai-sort-jump {
+    width: auto !important;
+    padding: 8px 14px !important;
+    border-radius: 999px !important;
+    flex-shrink: 0;
+  }
+
+  .wb-ai-sort-select-all {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.75rem;
+    color: #cbd5e1;
+    font-weight: 700;
+  }
+
+  .wb-ai-sort-toolbar {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  .wb-ai-sort-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .wb-ai-suggestion-item {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 12px;
+    padding: 14px;
+    border-radius: 16px;
+    border: 1px solid rgba(71, 85, 105, 0.42);
+    background: rgba(15, 23, 42, 0.82);
+  }
+
+  .wb-ai-suggestion-check {
+    display: inline-flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 4px;
+  }
+
+  .wb-ai-suggestion-check input {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    accent-color: #38bdf8;
+  }
+
+  .wb-ai-suggestion-body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+  }
+
+  .wb-ai-suggestion-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .wb-ai-suggestion-title {
+    margin: 0;
+    font-size: 0.92rem;
+    color: #f8fafc;
+    line-height: 1.4;
+  }
+
+  .wb-ai-suggestion-meta {
+    margin: 4px 0 0;
+    font-size: 0.72rem;
+    color: #94a3b8;
+    line-height: 1.45;
+  }
+
+  .wb-ai-suggestion-badge {
+    flex-shrink: 0;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(56, 189, 248, 0.18);
+    background: rgba(56, 189, 248, 0.08);
+    color: #7dd3fc;
+    font-size: 0.68rem;
+    font-weight: 700;
+  }
+
+  .wb-ai-suggestion-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .wb-ai-suggestion-col {
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(71, 85, 105, 0.35);
+    background: rgba(2, 6, 23, 0.38);
+  }
+
+  .wb-ai-suggestion-col.is-suggested {
+    border-color: rgba(34, 197, 94, 0.25);
+    background: rgba(16, 185, 129, 0.06);
+  }
+
+  .wb-ai-suggestion-label {
+    margin-bottom: 8px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #94a3b8;
+  }
+
+  .wb-ai-suggestion-summary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px 10px;
+    font-size: 0.72rem;
+    color: #cbd5e1;
+    line-height: 1.5;
+  }
+
+  .wb-ai-suggestion-content {
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(71, 85, 105, 0.35);
+    background: rgba(2, 6, 23, 0.28);
+  }
+
+  .wb-ai-suggestion-content-title {
+    margin-bottom: 8px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #94a3b8;
+  }
+
+  .wb-ai-suggestion-content p {
+    margin: 0 0 8px;
+    font-size: 0.74rem;
+    color: #cbd5e1;
+    line-height: 1.5;
+  }
+
+  .wb-ai-suggestion-content pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 0.72rem;
+    color: #e2e8f0;
+    line-height: 1.55;
+  }
+
+  .wb-ai-sort-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 6px;
+  }
+
+  .wb-ai-sort-primary,
+  .wb-ai-sort-cancel {
+    width: auto !important;
+    min-width: 132px;
+    border-radius: 999px !important;
+  }
+
+  .wb-ai-sort-cancel {
+    background: linear-gradient(135deg, #475569, #334155) !important;
+    border-color: rgba(71, 85, 105, 0.3) !important;
+  }
+
+  .wb-ai-sort-cancel:hover {
+    background: linear-gradient(135deg, #334155, #1e293b) !important;
+    border-color: rgba(99, 102, 241, 0.3) !important;
+  }
+
+  .wb-ai-empty-copy h4 {
+    margin: 0 0 6px;
+    font-size: 0.92rem;
+    color: #e2e8f0;
+  }
+
+  .wb-ai-empty-copy p {
+    margin: 0;
+    font-size: 0.74rem;
+    color: #94a3b8;
+    line-height: 1.5;
+  }
+
+  .wb-ai-sort-error-message {
+    color: #fda4af;
+  }
+
   @media (max-width: 1100px) {
     .wb-head {
       grid-template-columns: 1fr;
@@ -986,6 +1365,32 @@
       width: 100%;
       justify-content: flex-start;
       align-self: auto;
+    }
+  }
+
+  @media (max-width: 900px) {
+    .wb-head-actions {
+      justify-content: flex-start;
+    }
+
+    .wb-ai-sort-state,
+    .wb-ai-sort-toolbar,
+    .wb-ai-suggestion-top {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .wb-ai-suggestion-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .wb-ai-sort-actions {
+      justify-content: stretch;
+    }
+
+    .wb-ai-sort-primary,
+    .wb-ai-sort-cancel {
+      width: 100% !important;
     }
   }
 </style>

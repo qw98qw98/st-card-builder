@@ -3,6 +3,7 @@ import Layout from '../layouts/Layout.astro';
 import AppHeader from '../components/AppHeader.astro';
 import WorkspaceNav from '../components/WorkspaceNav.astro';
 import ImportExportCenter from '../components/ImportExportCenter.astro';
+import AiSettingsPanel from '../components/AiSettingsPanel.astro';
 import CharacterPanel from '../components/CharacterPanel.astro';
 import WorldbookPanel from '../components/WorldbookPanel.astro';
 import PromptLayoutPanel from '../components/PromptLayoutPanel.astro';
@@ -27,6 +28,7 @@ import PromptLayoutPanel from '../components/PromptLayoutPanel.astro';
         </div>
       </div>
       <ImportExportCenter />
+      <AiSettingsPanel />
       <div class="workspace-grid workspace-grid-core">
         <CharacterPanel />
       </div>
@@ -78,6 +80,7 @@ import PromptLayoutPanel from '../components/PromptLayoutPanel.astro';
     import { extractWorldbookImportJSON, parseWorldbookImportJSON, getWorldbookImportName, getImportedWorldbookMeta, getImportedWorldbookEntries } from '../scripts/worldbook/import';
     import { getCardRootPayload, isCharacterCardPayload, isPureWorldbookPayload, normalizeImportedCharacterCard } from '../scripts/card-normalize';
     import { getWorldbookSourceLabel, getWorldbookSourceClass, cleanWorldbookTitle, normalizeWorldbookTextBlock, makePreviewCopyText, buildWorldbookMarkdown, downloadWorldbookMarkdown } from '../scripts/worldbook-helpers';
+    import { initWorldbookAISort } from '../scripts/worldbook-ai-sort';
     import { buildVanillaWorldbookEntryCopy, generateSillyTavernJSON, generateVanillaCharacterJSON } from '../scripts/json-generate';
     import type { ExportContext } from '../scripts/json-generate';
     import { createTextChunk, extractPNGCharaChunk } from '../scripts/utils/png-chunk';
@@ -943,6 +946,28 @@ window.__setImportedAvatar__ = function(src, skipCommit, exportBase64) {
         };
       });
     };
+
+    initWorldbookAISort({
+      getEntries: function() {
+        return worldbookEntries;
+      },
+      commit: function() {
+        renderEntriesList();
+        debouncedUpdateAndSave();
+      },
+      openSettings: function() {
+        if (typeof window.__setWorkspaceTab__ === 'function') {
+          window.__setWorkspaceTab__('core');
+        }
+        var aiPanel = document.getElementById('aiSettingsPanel');
+        if (aiPanel && aiPanel.scrollIntoView) {
+          aiPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      },
+      getWorldbookName: function() {
+        return (wbName && wbName.value && wbName.value.trim()) || (charName && charName.value && charName.value.trim()) || 'worldbook';
+      },
+    });
 
     // ============================================================
     //  PNG 导出
