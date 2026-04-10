@@ -487,6 +487,13 @@ select.cs-hidden { display: none !important; }
   transition: max-height 0.25s ease, opacity 0.2s ease;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
+.cs-dropdown.cs-portalled {
+  position: fixed;
+  right: auto;
+  max-height: 220px;
+  overflow-y: auto;
+  opacity: 1;
+}
 .cs-wrap.cs-open .cs-dropdown {
   max-height: 220px;
   overflow-y: auto;

@@ -103,6 +103,7 @@ const { title } = Astro.props;
       function portalOpen(wrap, dropdown, trigger) {
         var rect = trigger.getBoundingClientRect();
         dropdown.classList.add('cs-portalled');
+        dropdown.style.position = 'fixed';
         document.body.appendChild(dropdown);
         dropdown.style.left = rect.left + 'px';
         dropdown.style.top = rect.bottom + 'px';
@@ -115,6 +116,7 @@ const { title } = Astro.props;
       // 将下拉框收回 wrap
       function portalClose(wrap, dropdown) {
         dropdown.classList.remove('cs-portalled');
+        dropdown.style.position = '';
         dropdown.style.left = '';
         dropdown.style.top = '';
         dropdown.style.width = '';
