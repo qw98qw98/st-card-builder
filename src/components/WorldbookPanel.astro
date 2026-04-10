@@ -229,9 +229,20 @@
     <div class="wb-ai-sort-head">
       <div>
         <h3 id="wbAiSortTitle">🤖 AI 排序建议</h3>
-        <p class="wb-card-desc">让 AI 根据世界书内容给出 position、order、depth、prob 和 strategy 的排序建议，只改真正需要调整的条目。</p>
+        <p class="wb-card-desc">让 AI 根据世界书内容给出排序建议，只改真正需要调整的条目。</p>
       </div>
       <button id="wbAiSortClose" class="wb-ai-sort-close" type="button" aria-label="关闭">×</button>
+    </div>
+
+    <div class="wb-ai-sort-format">
+      <div class="wb-ai-sort-format-copy">
+        <label class="wb-ai-sort-format-label" for="wbAiSortFormat">分析格式</label>
+        <p class="wb-ai-sort-format-note">香草只保留常驻、选择性触发、次要关键词、区分大小写、插入顺序、优先级和角色前/后位置。</p>
+      </div>
+      <select id="wbAiSortFormat" class="wb-ai-sort-format-select">
+        <option value="sillytavern">SillyTavern</option>
+        <option value="vanilla">香草</option>
+      </select>
     </div>
 
     <div id="wbAiSortConfig" class="wb-ai-sort-state">
@@ -1062,6 +1073,47 @@
     margin: 0;
   }
 
+  .wb-ai-sort-format {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    align-items: center;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    border: 1px solid rgba(71, 85, 105, 0.45);
+    border-radius: 14px;
+    background: rgba(2, 6, 23, 0.42);
+  }
+
+  .wb-ai-sort-format-copy {
+    min-width: 0;
+  }
+
+  .wb-ai-sort-format-label {
+    display: inline-flex;
+    margin-bottom: 4px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #e2e8f0;
+  }
+
+  .wb-ai-sort-format-note {
+    margin: 0;
+    font-size: 0.74rem;
+    color: #94a3b8;
+    line-height: 1.5;
+  }
+
+  .wb-ai-sort-format-select {
+    min-width: 160px;
+    border-radius: 10px;
+    border: 1px solid rgba(71, 85, 105, 0.55);
+    background: rgba(15, 23, 42, 0.9);
+    color: #e2e8f0;
+    padding: 8px 10px;
+    font-size: 0.78rem;
+  }
+
   .wb-ai-sort-close {
     width: 36px !important;
     height: 36px;
@@ -1375,6 +1427,15 @@
   @media (max-width: 900px) {
     .wb-head-actions {
       justify-content: flex-start;
+    }
+
+    .wb-ai-sort-format {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .wb-ai-sort-format-select {
+      width: 100%;
     }
 
     .wb-ai-sort-state,

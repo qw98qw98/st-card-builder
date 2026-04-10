@@ -36,6 +36,7 @@ export interface WorldbookSortSuggestion {
   suggestedRole?: 0 | 1 | 2;
   suggestedOrder?: number;
   suggestedProb?: number;
+  suggestedPriority?: number;
   suggestedStrategy?: 'selective' | 'constant' | 'vectorized';
   reason: string;
 }

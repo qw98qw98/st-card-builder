@@ -466,6 +466,7 @@
   import { importedCardMeta as importedCardMetaStore } from '../stores/card-store';
 
   const posLabelsST: Record<number, string> = {
+    [-1]: '常驻',
     0: '角色定义之前',
     1: '角色定义之后',
     2: '前 EM',
@@ -476,12 +477,13 @@
   };
 
   const posLabelsVanilla: Record<number, string> = {
+    [-1]: '常驻',
     0: '角色定义之前',
     1: '角色定义之后',
-    4: '@D 深度插入',
   };
 
   const posStrength: Record<number, string> = {
+    [-1]: 'strong',
     0: 'weak',
     1: 'weak',
     2: 'medium',
@@ -490,9 +492,6 @@
     5: 'strong',
     6: 'strong',
   };
-
-  /** Positions hidden in Vanilla mode */
-  const vanillaHiddenPositions = new Set([2, 3, 5, 6]);
 
   function escapeHTML(s: string): string {
     const d = document.createElement('div');
@@ -516,13 +515,15 @@
     return '手动';
   }
 
-  function renderWbEntry(entry: any): string {
+  function renderWbEntry(entry: any, isVanilla: boolean): string {
     const strategy = entry.strategy || 'selective';
     const strategyTag = strategy === 'constant'
-      ? '<span class="pl-wb-entry-tag tag-constant">始终启用</span>'
-      : strategy === 'vectorized'
-        ? '<span class="pl-wb-entry-tag tag-selective">向量化</span>'
-        : '<span class="pl-wb-entry-tag tag-selective">关键词触发</span>';
+      ? '<span class="pl-wb-entry-tag tag-constant">常驻（始终启用）</span>'
+      : isVanilla
+        ? '<span class="pl-wb-entry-tag tag-selective">选择性触发</span>'
+        : strategy === 'vectorized'
+          ? '<span class="pl-wb-entry-tag tag-selective">向量化</span>'
+          : '<span class="pl-wb-entry-tag tag-selective">关键词触发</span>';
 
     const sourceClass = getSourceClass(entry.source || 'manual');
     const sourceLabel = getSourceLabel(entry.source || 'manual');
@@ -546,7 +547,7 @@
           ${strategyTag}
           <span class="pl-wb-entry-tag ${sourceClass}">${sourceLabel}</span>
           <span class="pl-wb-entry-tag tag-prob">优先级 ${prob}</span>
-          ${entry.position === 4 && entry.depth !== undefined && entry.depth !== 4 ? `<span class="pl-wb-entry-tag">Depth ${entry.depth}</span>` : ''}
+          ${!isVanilla && entry.position === 4 && entry.depth !== undefined && entry.depth !== 4 ? `<span class="pl-wb-entry-tag">Depth ${entry.depth}</span>` : ''}
         </div>
         <div class="pl-wb-entry-keys"><strong>触发词：</strong>${keysHtml}</div>
         ${content ? `<div class="pl-wb-entry-preview">${escapeHTML(content)}</div>` : ''}
@@ -561,7 +562,9 @@
     const strength = posStrength[position] || 'medium';
 
     const sorted = entries.slice().sort((a: any, b: any) => (a.order || 100) - (b.order || 100));
-    const entriesHtml = sorted.map(renderWbEntry).join('');
+    const entriesHtml = sorted.map(function (entry: any) {
+      return renderWbEntry(entry, isVanilla);
+    }).join('');
 
     return `
       <div class="pl-wb-group ${collapsed ? 'is-collapsed' : ''}" data-strength="${strength}">
@@ -701,7 +704,7 @@
     if (isVanilla) {
       html += `<div class="pl-format-banner">
         <span class="pl-format-badge is-vanilla">Vanilla AI</span>
-        <span>香草角色卡格式 — 无作者注释和 EM 位置层级</span>
+        <span>香草角色卡格式 — 仅保留常驻、角色前、角色后；其余位置会折叠到角色后</span>
       </div>`;
     } else {
       html += `<div class="pl-format-banner">
@@ -719,23 +722,46 @@
     // 3. Character description
     html += renderLayer('🎭', '角色描述 (Character Description)', charDesc, { permanent: true, strength: 'weak' });
 
-    // 4. Worldbook entries at position 1 (after character definition)
-    html += renderWbGroup(1, byPos[1] || [], isVanilla);
+    if (isVanilla) {
+      const vanillaAfterEntries: any[] = ([] as any[])
+        .concat(byPos[1] || [])
+        .concat(byPos[2] || [])
+        .concat(byPos[3] || [])
+        .concat(byPos[4] || [])
+        .concat(byPos[5] || [])
+        .concat(byPos[6] || []);
 
-    // 5. Personality
-    html += renderLayer('💡', '性格 (Personality)', personality, { permanent: true, strength: 'medium' });
+      // 4. Vanilla worldbook entries after character definition
+      html += renderWbGroup(1, vanillaAfterEntries, isVanilla);
+      // 5. Personality
+      html += renderLayer('💡', '性格 (Personality)', personality, { permanent: true, strength: 'medium' });
 
-    // 6. Scenario
-    html += renderLayer('🎬', '场景 (Scenario)', scenario, { permanent: true, strength: 'medium' });
+      // 6. Scenario
+      html += renderLayer('🎬', '场景 (Scenario)', scenario, { permanent: true, strength: 'medium' });
 
-    // 7. Example dialogue
-    html += renderLayer('💬', '对话示例 (Example Dialogue)', mesExample, { permanent: false, strength: 'medium' });
+      // 7. Example dialogue
+      html += renderLayer('💬', '对话示例 (Example Dialogue)', mesExample, { permanent: false, strength: 'medium' });
 
-    // 8. First message
-    html += renderLayer('📝', '开场白 (First Message)', firstMes, { permanent: false, strength: 'medium' });
+      // 8. First message
+      html += renderLayer('📝', '开场白 (First Message)', firstMes, { permanent: false, strength: 'medium' });
 
-    if (!isVanilla) {
-      // ─── SillyTavern full layout ───
+      // Creator notes — greyed out, info only
+      html += renderLayer('📋', '创作者备注 (Creator Notes)', creatorNotes, { infoOnly: true, strength: 'weak' });
+    } else {
+      // 4. Worldbook entries at position 1 (after character definition)
+      html += renderWbGroup(1, byPos[1] || [], isVanilla);
+
+      // 5. Personality
+      html += renderLayer('💡', '性格 (Personality)', personality, { permanent: true, strength: 'medium' });
+
+      // 6. Scenario
+      html += renderLayer('🎬', '场景 (Scenario)', scenario, { permanent: true, strength: 'medium' });
+
+      // 7. Example dialogue
+      html += renderLayer('💬', '对话示例 (Example Dialogue)', mesExample, { permanent: false, strength: 'medium' });
+
+      // 8. First message
+      html += renderLayer('📝', '开场白 (First Message)', firstMes, { permanent: false, strength: 'medium' });
 
       // 9. Chat history divider
       html += renderDivider('··· 聊天记录（随对话增长，早期内容会被推出上下文）···');
@@ -755,14 +781,6 @@
       // 14. Positions 2, 3 (EM positions, less common)
       if (byPos[2]?.length) html += renderWbGroup(2, byPos[2], isVanilla);
       if (byPos[3]?.length) html += renderWbGroup(3, byPos[3], isVanilla);
-    } else {
-      // ─── Vanilla AI simplified layout ───
-
-      // @D depth entries (position 4)
-      html += renderWbGroup(4, byPos[4] || [], isVanilla);
-
-      // Creator notes — greyed out, info only
-      html += renderLayer('📋', '创作者备注 (Creator Notes)', creatorNotes, { infoOnly: true, strength: 'weak' });
     }
 
     // Disabled entries (informational, shown in both modes)

@@ -8,6 +8,8 @@ import type { WorldbookSortSuggestion } from '../types/ai';
 //  世界书 AI 排序建议
 // ============================================================
 
+type WorldbookAnalysisFormat = 'sillytavern' | 'vanilla';
+
 export interface WorldbookAISortOptions {
   getEntries: () => WorldbookEntry[];
   commit: () => void;
@@ -22,6 +24,7 @@ interface ModalStateRefs {
   cancelBtn: HTMLButtonElement;
   closeBtn: HTMLButtonElement | null;
   jumpSettingsBtn: HTMLButtonElement | null;
+  formatSelect: HTMLSelectElement | null;
   selectAll: HTMLInputElement | null;
   loadingState: HTMLElement;
   emptyState: HTMLElement;
@@ -47,6 +50,44 @@ function normalizeArrayText(value: unknown): string {
   return String(value || '').trim();
 }
 
+function getAnalysisFormat(refs: ModalStateRefs): WorldbookAnalysisFormat {
+  return refs.formatSelect && refs.formatSelect.value === 'vanilla' ? 'vanilla' : 'sillytavern';
+}
+
+function formatPositionLabel(position: number, format: WorldbookAnalysisFormat): string {
+  if (format === 'vanilla') {
+    return position === 0 ? 'before_char / 角色前' : 'after_char / 角色后';
+  }
+  const labels: Record<number, string> = {
+    0: '角色前',
+    1: '角色后',
+    2: '前 EM',
+    3: '后 EM',
+    4: '深度插入',
+    5: '作者注前',
+    6: '作者注后',
+  };
+  return labels[position] || String(position);
+}
+
+function formatStrategyLabel(strategy: string, format: WorldbookAnalysisFormat): string {
+  if (strategy === 'constant') return '常驻（始终启用）';
+  if (format === 'vanilla') return '选择性触发';
+  if (strategy === 'vectorized') return '向量化';
+  return '关键词触发';
+}
+
+function parseAIPositionSuggestion(value: unknown): number | undefined {
+  if (value === undefined || value === null || value === '') return undefined;
+  const raw = String(value).trim();
+  if (!raw) return undefined;
+  if (raw === 'before_char' || raw === 'after_char') {
+    return raw === 'before_char' ? 0 : 1;
+  }
+  const parsed = parseInt(raw, 10);
+  return isNaN(parsed) ? undefined : clamp(parsed, 0, 6);
+}
+
 function summarizeEntry(entry: WorldbookEntry, index: number): Record<string, unknown> {
   const content = String(entry.content || '').replace(/\s+/g, ' ').trim();
   const contentPreview = content.length > 220 ? content.slice(0, 220) + '…' : content;
@@ -63,16 +104,23 @@ function summarizeEntry(entry: WorldbookEntry, index: number): Record<string, un
       role: safeInt(entry.role, 0),
       order: safeInt(entry.order, 100),
       prob: safeInt(entry.prob, 100),
+      priority: safeInt(entry.prob, 100),
       enabled: entry.enabled !== false,
       source: entry.source || 'manual',
     },
   };
 }
 
-export function buildWorldbookSortPrompt(entries: WorldbookEntry[], worldbookName?: string): string {
+export function buildWorldbookSortPrompt(
+  entries: WorldbookEntry[],
+  worldbookName?: string,
+  format: WorldbookAnalysisFormat = 'sillytavern'
+): string {
   const list = (Array.isArray(entries) ? entries : []).map(function (entry, index) {
     return summarizeEntry(entry, index);
   });
+
+  const isVanilla = format === 'vanilla';
 
   return [
     '你是一个熟悉 SillyTavern 世界书结构的整理助手。',
@@ -84,26 +132,45 @@ export function buildWorldbookSortPrompt(entries: WorldbookEntry[], worldbookNam
     '3. 一次性 NPC、低频道具、琐碎背景信息更靠前、权重更低。',
     '4. 如果条目几乎总是需要注入，建议 strategy=constant。',
     '5. 如果条目只有在关键词命中时才注入，建议 strategy=selective。',
-    '6. 只有确实有必要时才使用 strategy=vectorized。',
     '',
-    '字段说明：',
-    '- position: 0=角色前, 1=角色后, 2=前 EM, 3=后 EM, 4=深度插入, 5=作者注前, 6=作者注后。',
-    '- position=4 时，role 代表 0=系统, 1=用户, 2=助手，depth 代表深度层级。',
-    '- order 数值越大，表示同一 position 内越靠后、影响越强；建议使用 10/20/30 之类的梯度值。',
-    '- prob 是触发概率，核心条目建议更高，次要条目可适当降低。',
-    '',
-    '请只输出 JSON 数组，不要输出任何解释、markdown 或代码块。',
-    '数组元素格式如下：',
-    '{',
-    '  "index": 0,',
-    '  "suggestedPosition": 4,',
-    '  "suggestedRole": 0,',
-    '  "suggestedDepth": 2,',
-    '  "suggestedOrder": 200,',
-    '  "suggestedProb": 100,',
-    '  "suggestedStrategy": "constant",',
-    '  "reason": "简短中文原因"',
-    '}',
+    ...(isVanilla
+      ? [
+        '字段说明：',
+        '- position: before_char=角色前, after_char=角色后',
+        '- order 数值越大，表示同一 position 内越靠后、影响越强；建议使用 10/20/30 之类的梯度值。',
+        '- priority 是优先级；当超出 token budget 时，priority 数值越高越优先保留。',
+        '',
+        '请只输出 JSON 数组，不要输出任何解释、markdown 或代码块。',
+        '数组元素格式如下：',
+        '{',
+        '  "index": 0,',
+        '  "suggestedPosition": "before_char",',
+        '  "suggestedOrder": 200,',
+        '  "suggestedPriority": 100,',
+        '  "suggestedStrategy": "constant",',
+        '  "reason": "简短中文原因"',
+        '}',
+      ]
+      : [
+        '字段说明：',
+        '- position: 0=角色前, 1=角色后, 2=前 EM, 3=后 EM, 4=深度插入, 5=作者注前, 6=作者注后。', '- 如果最终要导出香草格式，导出层会自动折叠为 before_char / after_char；这里仍然请输出数字 position。',
+        '- position=4 时，role 代表 0=系统, 1=用户, 2=助手，depth 代表深度层级。',
+        '- order 数值越大，表示同一 position 内越靠后、影响越强；建议使用 10/20/30 之类的梯度值。',
+        '- prob 是触发概率，核心条目建议更高，次要条目可适当降低。',
+        '',
+        '请只输出 JSON 数组，不要输出任何解释、markdown 或代码块。',
+        '数组元素格式如下：',
+        '{',
+        '  "index": 0,',
+        '  "suggestedPosition": 4,',
+        '  "suggestedRole": 0,',
+        '  "suggestedDepth": 2,',
+        '  "suggestedOrder": 200,',
+        '  "suggestedProb": 100,',
+        '  "suggestedStrategy": "constant",',
+        '  "reason": "简短中文原因"',
+        '}',
+      ]),
     '只返回需要调整的条目；如果某条无需修改，就不要返回。',
     worldbookName ? ('世界书名称：' + worldbookName) : '',
     '',
@@ -157,7 +224,10 @@ function normalizeSuggestion(raw: unknown): WorldbookSortSuggestion | null {
   };
 
   if (item.suggestedPosition !== undefined || item.position !== undefined) {
-    suggestion.suggestedPosition = clamp(safeInt(item.suggestedPosition !== undefined ? item.suggestedPosition : item.position, 4), 0, 6);
+    const parsedPosition = parseAIPositionSuggestion(item.suggestedPosition !== undefined ? item.suggestedPosition : item.position);
+    if (parsedPosition !== undefined) {
+      suggestion.suggestedPosition = parsedPosition;
+    }
   }
   if (item.suggestedDepth !== undefined || item.depth !== undefined) {
     suggestion.suggestedDepth = Math.max(0, safeInt(item.suggestedDepth !== undefined ? item.suggestedDepth : item.depth, 4));
@@ -170,6 +240,15 @@ function normalizeSuggestion(raw: unknown): WorldbookSortSuggestion | null {
   }
   if (item.suggestedProb !== undefined || item.prob !== undefined) {
     suggestion.suggestedProb = clamp(safeInt(item.suggestedProb !== undefined ? item.suggestedProb : item.prob, 100), 1, 100);
+  }
+  if (item.suggestedPriority !== undefined || item.priority !== undefined) {
+    const priority = clamp(
+      safeInt(item.suggestedPriority !== undefined ? item.suggestedPriority : item.priority, 100),
+      1,
+      100
+    );
+    suggestion.suggestedPriority = priority;
+    suggestion.suggestedProb = priority;
   }
   if (strategy) {
     suggestion.suggestedStrategy = strategy;
@@ -239,7 +318,7 @@ function updateConfigState(refs: ModalStateRefs): void {
   refs.analyzeBtn.disabled = false;
 }
 
-function renderSuggestionList(refs: ModalStateRefs, entries: WorldbookEntry[]): void {
+function renderSuggestionList(refs: ModalStateRefs, entries: WorldbookEntry[], format: WorldbookAnalysisFormat): void {
   refs.listEl.innerHTML = '';
 
   const visibleCount = currentSuggestions.filter(function (suggestion) {
@@ -271,6 +350,8 @@ function renderSuggestionList(refs: ModalStateRefs, entries: WorldbookEntry[]): 
     const suggestedRole = suggestion.suggestedRole !== undefined ? suggestion.suggestedRole : currentRole;
     const suggestedOrder = suggestion.suggestedOrder !== undefined ? suggestion.suggestedOrder : currentOrder;
     const suggestedProb = suggestion.suggestedProb !== undefined ? suggestion.suggestedProb : currentProb;
+    const probLabel = format === 'vanilla' ? 'priority' : 'prob';
+    const showLegacyFields = format === 'sillytavern';
 
     const item = document.createElement('article');
     item.className = 'wb-ai-suggestion-item';
@@ -291,23 +372,23 @@ function renderSuggestionList(refs: ModalStateRefs, entries: WorldbookEntry[]): 
       '    <div class="wb-ai-suggestion-col">',
       '      <div class="wb-ai-suggestion-label">当前</div>',
       '      <div class="wb-ai-suggestion-summary">',
-      '        <div>strategy: ' + escapeHTML(currentStrategy) + '</div>',
-      '        <div>position: ' + String(currentPosition) + '</div>',
-      '        <div>depth: ' + String(currentDepth) + '</div>',
-      '        <div>role: ' + String(currentRole) + '</div>',
+      '        <div>strategy: ' + escapeHTML(formatStrategyLabel(currentStrategy, format)) + '</div>',
+      '        <div>position: ' + escapeHTML(formatPositionLabel(currentPosition, format)) + '</div>',
+      showLegacyFields ? '        <div>depth: ' + String(currentDepth) + '</div>' : '',
+      showLegacyFields ? '        <div>role: ' + String(currentRole) + '</div>' : '',
       '        <div>order: ' + String(currentOrder) + '</div>',
-      '        <div>prob: ' + String(currentProb) + '</div>',
+      '        <div>' + probLabel + ': ' + String(currentProb) + '</div>',
       '      </div>',
       '    </div>',
       '    <div class="wb-ai-suggestion-col is-suggested">',
       '      <div class="wb-ai-suggestion-label">建议</div>',
       '      <div class="wb-ai-suggestion-summary">',
-      '        <div>strategy: ' + escapeHTML(suggestedStrategy) + '</div>',
-      '        <div>position: ' + String(suggestedPosition) + '</div>',
-      '        <div>depth: ' + String(suggestedDepth) + '</div>',
-      '        <div>role: ' + String(suggestedRole) + '</div>',
+      '        <div>strategy: ' + escapeHTML(formatStrategyLabel(suggestedStrategy, format)) + '</div>',
+      '        <div>position: ' + escapeHTML(formatPositionLabel(suggestedPosition, format)) + '</div>',
+      showLegacyFields ? '        <div>depth: ' + String(suggestedDepth) + '</div>' : '',
+      showLegacyFields ? '        <div>role: ' + String(suggestedRole) + '</div>' : '',
       '        <div>order: ' + String(suggestedOrder) + '</div>',
-      '        <div>prob: ' + String(suggestedProb) + '</div>',
+      '        <div>' + probLabel + ': ' + String(suggestedProb) + '</div>',
       '      </div>',
       '    </div>',
       '  </div>',
@@ -357,7 +438,8 @@ async function runAnalysis(refs: ModalStateRefs, options: WorldbookAISortOptions
   setModalSection(refs, 'loading');
 
   try {
-    const prompt = buildWorldbookSortPrompt(entries, options.getWorldbookName ? options.getWorldbookName() : '');
+    const format = getAnalysisFormat(refs);
+    const prompt = buildWorldbookSortPrompt(entries, options.getWorldbookName ? options.getWorldbookName() : '', format);
     const response = await callAIText(prompt, settings, {
       temperature: 0.2,
       maxTokens: 2048,
@@ -375,7 +457,7 @@ async function runAnalysis(refs: ModalStateRefs, options: WorldbookAISortOptions
       return;
     }
 
-    renderSuggestionList(refs, entries);
+    renderSuggestionList(refs, entries, format);
   } catch (error) {
     refs.errorMessage.textContent = '分析失败：' + String(error instanceof Error ? error.message : error);
     setModalSection(refs, 'error');
@@ -384,6 +466,7 @@ async function runAnalysis(refs: ModalStateRefs, options: WorldbookAISortOptions
 
 function applySuggestions(refs: ModalStateRefs, options: WorldbookAISortOptions): number {
   const entries = options.getEntries();
+  const isVanilla = getAnalysisFormat(refs) === 'vanilla';
   const checked = Array.prototype.slice.call(refs.listEl.querySelectorAll('input[type="checkbox"]:checked')) as HTMLInputElement[];
   let applied = 0;
 
@@ -396,15 +479,17 @@ function applySuggestions(refs: ModalStateRefs, options: WorldbookAISortOptions)
     if (!entry) return;
 
     if (suggestion.suggestedStrategy) {
-      entry.strategy = suggestion.suggestedStrategy;
+      entry.strategy = isVanilla && suggestion.suggestedStrategy === 'vectorized'
+        ? 'selective'
+        : suggestion.suggestedStrategy;
     }
     if (suggestion.suggestedPosition !== undefined) {
       entry.position = clamp(suggestion.suggestedPosition, 0, 6);
     }
-    if (suggestion.suggestedDepth !== undefined) {
+    if (!isVanilla && suggestion.suggestedDepth !== undefined) {
       entry.depth = Math.max(0, suggestion.suggestedDepth);
     }
-    if (suggestion.suggestedRole !== undefined) {
+    if (!isVanilla && suggestion.suggestedRole !== undefined) {
       entry.role = clamp(suggestion.suggestedRole, 0, 2) as 0 | 1 | 2;
     }
     if (suggestion.suggestedOrder !== undefined) {
@@ -412,6 +497,9 @@ function applySuggestions(refs: ModalStateRefs, options: WorldbookAISortOptions)
     }
     if (suggestion.suggestedProb !== undefined) {
       entry.prob = clamp(suggestion.suggestedProb, 1, 100);
+    }
+    if (isVanilla && suggestion.suggestedPriority !== undefined) {
+      entry.prob = clamp(suggestion.suggestedPriority, 1, 100);
     }
 
     applied++;
@@ -434,6 +522,7 @@ export function initWorldbookAISort(options: WorldbookAISortOptions): void {
   const cancelBtn = document.getElementById('wbAiSortCancel');
   const closeBtn = document.getElementById('wbAiSortClose');
   const jumpSettingsBtn = document.getElementById('wbAiSortJumpSettings');
+  const formatSelect = document.getElementById('wbAiSortFormat') as HTMLSelectElement | null;
   const selectAll = document.getElementById('wbAiSortSelectAll') as HTMLInputElement | null;
   const loadingState = document.getElementById('wbAiSortLoading');
   const emptyState = document.getElementById('wbAiSortEmpty');
@@ -472,6 +561,7 @@ export function initWorldbookAISort(options: WorldbookAISortOptions): void {
     cancelBtn: cancelBtn as HTMLButtonElement,
     closeBtn: closeBtn as HTMLButtonElement | null,
     jumpSettingsBtn: jumpSettingsBtn as HTMLButtonElement | null,
+    formatSelect: formatSelect,
     selectAll: selectAll,
     loadingState: loadingState,
     emptyState: emptyState,
@@ -484,6 +574,10 @@ export function initWorldbookAISort(options: WorldbookAISortOptions): void {
     countEl: countEl,
     statusEl: statusEl,
   };
+
+  if (refs.formatSelect) {
+    refs.formatSelect.value = window.__cardFormat__ === 'vanilla' ? 'vanilla' : 'sillytavern';
+  }
 
   function openModal(): void {
     modal.hidden = false;
